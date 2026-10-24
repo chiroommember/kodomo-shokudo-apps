@@ -1,12 +1,31 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 
 export default function HomePage() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 9, 1))
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userRole, setUserRole] = useState<'volunteer' | 'staff' | 'admin'>('volunteer')
 
-  // カレンダー用イベント（例）
+  // 簡易的なログイン状態のチェック（デモ用）
+  useEffect(() => {
+    const loggedInFlag = localStorage.getItem('isLoggedIn')
+    const savedRole = localStorage.getItem('userRole')
+    if (loggedInFlag === 'true') {
+      setIsLoggedIn(true)
+      if (savedRole) setUserRole(savedRole as 'volunteer' | 'staff' | 'admin')
+    }
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn')
+    localStorage.removeItem('userRole')
+    setIsLoggedIn(false)
+    alert('ログアウトしました')
+  }
+
+  // カレンダー用イベントデータ
   const events = [
     { day: 10, title: '長崎大学前 こども食堂', time: '17:00〜' },
     { day: 18, title: '浦上 交流こども食堂', time: '11:30〜' },
@@ -30,21 +49,50 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 右上：ログイン・新規登録ボタン */}
+        {/* 右上：ログイン状態に応じた表示 */}
         <div className="flex items-center space-x-3">
-          <Link
-            href="/login"
-            className="px-5 py-2 text-xs font-bold text-white bg-[#00a6f4] hover:bg-sky-500 rounded-xl transition shadow-sm"
-          >
-            ログイン
-          </Link>
-
-          <Link
-            href="/register"
-            className="px-5 py-2 text-xs font-bold text-[#00a6f4] bg-sky-50 hover:bg-sky-100 rounded-xl transition"
-          >
-            新規登録
-          </Link>
+          {isLoggedIn ? (
+            <>
+              {/* スタッフ・管理者の場合のみイベント追加や管理画面ボタンを表示 */}
+              {(userRole === 'staff' || userRole === 'admin') && (
+                <Link
+                  href="/events/new"
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#00a6f4] hover:bg-sky-600 rounded-xl shadow-sm transition"
+                >
+                  + イベント作成
+                </Link>
+              )}
+              {userRole === 'admin' && (
+                <Link
+                  href="/admin/users"
+                  className="px-4 py-2 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-xl transition"
+                >
+                  権限管理
+                </Link>
+              )}
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+              >
+                ログアウト
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="px-5 py-2 text-xs font-bold text-white bg-[#00a6f4] hover:bg-sky-500 rounded-xl transition shadow-sm"
+              >
+                ログイン
+              </Link>
+              <Link
+                href="/register"
+                className="px-5 py-2 text-xs font-bold text-[#00a6f4] bg-sky-50 hover:bg-sky-100 rounded-xl transition"
+              >
+                新規登録
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
