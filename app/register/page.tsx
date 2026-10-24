@@ -8,7 +8,7 @@ export default function RegisterPage() {
     name: '',
     email: '',
     phone: '',
-    role: '長崎大学生',
+    role: 'ボランティア参加希望',
     faculty: '',
     emergencyContact: '',
     allergies: '',
@@ -16,7 +16,7 @@ export default function RegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    alert('登録ありがとうございます！登録が完了しました。')
+    alert(`登録が完了しました！\n区分: ${formData.role}`)
   }
 
   return (
@@ -30,7 +30,7 @@ export default function RegisterPage() {
         </div>
 
         <p className="text-xs text-slate-500 leading-relaxed">
-          「ちるーむ」でのボランティア参加やイベント申込に必要な情報をご入力ください。
+          「ちるーむ」でのボランティア参加や子ども食堂の運営管理に必要な情報をご入力ください。
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -52,35 +52,34 @@ export default function RegisterPage() {
           {/* 区分・立場 */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              ご区分・立場 <span className="text-rose-500">*</span>
+              ご区分 <span className="text-rose-500">*</span>
             </label>
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-4 py-3 text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+              className="w-full px-4 py-3 text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white font-medium"
             >
-              <option value="長崎大学生">長崎大学生（サークル員・スタッフ）</option>
-              <option value="他大学生">他大学生ボランティア</option>
-              <option value="一般ボランティア">一般ボランティア</option>
-              <option value="保護者・参加者">保護者・一般参加者</option>
+              <option value="ボランティア参加希望">ボランティア参加希望（学生・一般）</option>
+              <option value="子ども食堂 運営スタッフ">子ども食堂 運営スタッフ（イベント追加・管理）</option>
             </select>
+            <p className="text-[10px] text-slate-400 mt-1">
+              ※サークル員権限（全体管理）は登録後に管理者より付与されます。
+            </p>
           </div>
 
-          {/* 学部・学年（任意） */}
-          {formData.role.includes('学生') && (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                学部・学科・学年 <span className="text-slate-400 font-normal">（任意）</span>
-              </label>
-              <input
-                type="text"
-                placeholder="例: 教育学部 2年"
-                value={formData.faculty}
-                onChange={(e) => setFormData({ ...formData, faculty: e.target.value })}
-                className="w-full px-4 py-3 text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
-              />
-            </div>
-          )}
+          {/* 学部・学年 */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              所属・学校名・学年 <span className="text-slate-400 font-normal">（任意）</span>
+            </label>
+            <input
+              type="text"
+              placeholder="例: 長崎大学 教育学部 2年"
+              value={formData.faculty}
+              onChange={(e) => setFormData({ ...formData, faculty: e.target.value })}
+              className="w-full px-4 py-3 text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+          </div>
 
           {/* メールアドレス */}
           <div>
@@ -119,7 +118,7 @@ export default function RegisterPage() {
             </label>
             <input
               type="text"
-              placeholder="例: 090-9999-9999（父）"
+              placeholder="例: 090-9999-9999（保護者）"
               value={formData.emergencyContact}
               onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
               className="w-full px-4 py-3 text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
@@ -133,7 +132,7 @@ export default function RegisterPage() {
             </label>
             <textarea
               rows={2}
-              placeholder="例: 卵アレルギーがあります / 車いすを利用しています"
+              placeholder="例: 卵アレルギーがあります"
               value={formData.allergies}
               onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
               className="w-full px-4 py-3 text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
@@ -144,7 +143,7 @@ export default function RegisterPage() {
             type="submit"
             className="w-full py-3.5 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-2xl text-xs transition shadow-sm mt-4"
           >
-            登録して次へ進む
+            登録する
           </button>
         </form>
 
