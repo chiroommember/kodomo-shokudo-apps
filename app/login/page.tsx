@@ -2,14 +2,18 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const router = useRouter()
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
     alert(`ログインしました！ (メール: ${email})`)
+    // ホーム画面へ遷移
+    router.push('/')
   }
 
   return (
