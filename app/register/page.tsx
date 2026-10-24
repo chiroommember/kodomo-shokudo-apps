@@ -8,31 +8,36 @@ export default function RegisterPage() {
     name: '',
     email: '',
     phone: '',
+    role: '長崎大学生',
+    faculty: '',
+    emergencyContact: '',
+    allergies: '',
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    alert('登録ありがとうございます！')
+    alert('登録ありがとうございます！登録が完了しました。')
   }
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 flex flex-col items-center justify-center">
-      <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-sm border border-slate-100 space-y-6">
+      <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-sm border border-slate-100 space-y-6 my-8">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-800">新規登録</h1>
-          <Link href="/" className="text-xs text-sky-500 hover:underline">
+          <Link href="/" className="text-xs text-sky-500 hover:underline font-bold">
             ← トップへ戻る
           </Link>
         </div>
 
         <p className="text-xs text-slate-500 leading-relaxed">
-          イベントへの参加申込やボランティア活動に必要な基本情報をご入力ください。
+          「ちるーむ」でのボランティア参加やイベント申込に必要な情報をご入力ください。
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* お名前 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              お名前（フルネーム）
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              お名前（フルネーム） <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
@@ -44,9 +49,43 @@ export default function RegisterPage() {
             />
           </div>
 
+          {/* 区分・立場 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              メールアドレス（連絡先）
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              ご区分・立場 <span className="text-rose-500">*</span>
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="w-full px-4 py-3 text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+            >
+              <option value="長崎大学生">長崎大学生（サークル員・スタッフ）</option>
+              <option value="他大学生">他大学生ボランティア</option>
+              <option value="一般ボランティア">一般ボランティア</option>
+              <option value="保護者・参加者">保護者・一般参加者</option>
+            </select>
+          </div>
+
+          {/* 学部・学年（任意） */}
+          {formData.role.includes('学生') && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                学部・学科・学年 <span className="text-slate-400 font-normal">（任意）</span>
+              </label>
+              <input
+                type="text"
+                placeholder="例: 教育学部 2年"
+                value={formData.faculty}
+                onChange={(e) => setFormData({ ...formData, faculty: e.target.value })}
+                className="w-full px-4 py-3 text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+              />
+            </div>
+          )}
+
+          {/* メールアドレス */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              メールアドレス（連絡先） <span className="text-rose-500">*</span>
             </label>
             <input
               type="email"
@@ -58,9 +97,10 @@ export default function RegisterPage() {
             />
           </div>
 
+          {/* 電話番号 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              電話番号
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              電話番号 <span className="text-rose-500">*</span>
             </label>
             <input
               type="tel"
@@ -72,11 +112,39 @@ export default function RegisterPage() {
             />
           </div>
 
+          {/* 緊急連絡先 */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              緊急連絡先（ご家族等） <span className="text-slate-400 font-normal">（任意）</span>
+            </label>
+            <input
+              type="text"
+              placeholder="例: 090-9999-9999（父）"
+              value={formData.emergencyContact}
+              onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
+              className="w-full px-4 py-3 text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+          </div>
+
+          {/* アレルギー等 */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              アレルギー・配慮事項等 <span className="text-slate-400 font-normal">（任意）</span>
+            </label>
+            <textarea
+              rows={2}
+              placeholder="例: 卵アレルギーがあります / 車いすを利用しています"
+              value={formData.allergies}
+              onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+              className="w-full px-4 py-3 text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+          </div>
+
           <button
             type="submit"
-            className="w-full py-3 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-2xl text-xs transition shadow-sm"
+            className="w-full py-3.5 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-2xl text-xs transition shadow-sm mt-4"
           >
-            登録して申込へ進む
+            登録して次へ進む
           </button>
         </form>
 
