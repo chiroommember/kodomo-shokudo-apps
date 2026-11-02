@@ -1,4 +1,3 @@
-'app/client'
 'use client'
 
 import React, { useState } from 'react'
@@ -87,6 +86,7 @@ export default function LoginPage() {
               <span className="font-bold">{email}</span> 宛にログイン用のリンクを記載したメールをお送りしました。メール内のリンクをクリックしてログインを完了してください。
             </p>
             <button
+              type="button"
               onClick={() => setSent(false)}
               className="text-xs text-[#00a6f4] font-bold hover:underline pt-2 block mx-auto"
             >
