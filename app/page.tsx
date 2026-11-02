@@ -2,25 +2,62 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export default function HomePage() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 9, 1))
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState<'volunteer' | 'staff' | 'admin'>('volunteer')
+  const [userEmail, setUserEmail] = useState('')
 
-  // 簡易的なログイン状態のチェック（デモ用）
+  // Supabaseのログイン状態（セッション）をチェック
   useEffect(() => {
-    const loggedInFlag = localStorage.getItem('isLoggedIn')
-    const savedRole = localStorage.getItem('userRole')
-    if (loggedInFlag === 'true') {
-      setIsLoggedIn(true)
-      if (savedRole) setUserRole(savedRole as 'volunteer' | 'staff' | 'admin')
+    // 1. 現在のセッションを確認
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setIsLoggedIn(true)
+        const email = session.user.email || ''
+        setUserEmail(email)
+        if (email.includes('admin')) {
+          setUserRole('admin')
+        } else if (email.includes('staff')) {
+          setUserRole('staff')
+        } else {
+          setUserRole('volunteer')
+        }
+      }
+    })
+
+    // 2. ログイン状態の変化をリアルタイムで監視
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setIsLoggedIn(true)
+        const email = session.user.email || ''
+        setUserEmail(email)
+        if (email.includes('admin')) {
+          setUserRole('admin')
+        } else if (email.includes('staff')) {
+          setUserRole('staff')
+        } else {
+          setUserRole('volunteer')
+        }
+      } else {
+        setIsLoggedIn(false)
+        setUserEmail('')
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
     }
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn')
-    localStorage.removeItem('userRole')
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
     setIsLoggedIn(false)
     alert('ログアウトしました')
   }
@@ -53,7 +90,10 @@ export default function HomePage() {
         <div className="flex items-center space-x-3">
           {isLoggedIn ? (
             <>
-              {/* スタッフ・管理者の場合のみイベント追加や管理画面ボタンを表示 */}
+              <span className="text-xs text-slate-500 hidden sm:inline font-medium">
+                {userEmail} ({userRole === 'admin' ? '管理者' : userRole === 'staff' ? 'スタッフ' : 'ボランティア'})
+              </span>
+              {/* スタッフ・管理者の場合のみイベント追加ボタンを表示 */}
               {(userRole === 'staff' || userRole === 'admin') && (
                 <Link
                   href="/events/new"
