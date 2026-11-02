@@ -93,7 +93,6 @@ export default function HomePage() {
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition"
               >
-                <span>[→</span>
                 <span>ログアウト</span>
               </button>
             </>
@@ -121,7 +120,6 @@ export default function HomePage() {
         {/* ヒーローバナー */}
         <div className="bg-[#f0f7ff] border border-sky-100/70 rounded-3xl p-7 space-y-2.5">
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0095f6] bg-white px-3.5 py-1 rounded-full border border-sky-100 shadow-2xs">
-            <span className="text-sky-400">♡</span>
             <span>ごはんを通じて繋がる、笑顔の輪。</span>
           </div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight">
@@ -136,12 +134,11 @@ export default function HomePage() {
         <div className="space-y-3">
           <p className="text-xs font-bold text-slate-400">メニュー</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {/* 1. 初めての方へ（青のメインカードスタイル） */}
+            {/* 1. 初めての方へ（青のメインカード） */}
             <Link
               href="/about"
               className="p-5 bg-[#0070f3] hover:bg-blue-600 text-white rounded-3xl shadow-sm transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2 group"
             >
-              <div className="text-2xl">📖</div>
               <h3 className="text-xs font-bold">初めての方へ</h3>
             </Link>
 
@@ -150,7 +147,6 @@ export default function HomePage() {
               href="/shokudo"
               className="p-5 bg-white hover:border-sky-300 rounded-3xl border border-sky-100/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2"
             >
-              <div className="text-2xl text-sky-500">Ψ¶</div>
               <h3 className="text-xs font-bold text-slate-700">子ども食堂一覧</h3>
             </Link>
 
@@ -159,7 +155,6 @@ export default function HomePage() {
               href="/mypage"
               className="p-5 bg-white hover:border-sky-300 rounded-3xl border border-sky-100/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2"
             >
-              <div className="text-2xl text-sky-500">👥</div>
               <h3 className="text-xs font-bold text-slate-700">マイページ・申込履歴</h3>
             </Link>
 
@@ -168,7 +163,6 @@ export default function HomePage() {
               href="/checkin"
               className="p-5 bg-[#fffdf0] hover:border-amber-300 rounded-3xl border border-amber-200/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2"
             >
-              <div className="text-2xl text-amber-500">📋</div>
               <h3 className="text-xs font-bold text-slate-800">出席管理（当日用）</h3>
             </Link>
           </div>
@@ -178,7 +172,7 @@ export default function HomePage() {
         <div className="bg-white rounded-3xl p-6 border border-sky-100/70 shadow-2xs space-y-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#008ce6] flex items-center gap-2">
-              <span className="text-base">📅</span> 活動・開催予定カレンダー
+              活動・開催予定カレンダー
             </h3>
           </div>
 
@@ -210,7 +204,7 @@ export default function HomePage() {
             <div className="text-sky-500">土</div>
           </div>
 
-          {/* カレンダーグリッド（画像通りの水色枠線＆+追加ボタン） */}
+          {/* カレンダーグリッド */}
           <div className="grid grid-cols-7 gap-2">
             {/* 前月の空セル（木曜日始まり） */}
             {Array.from({ length: 4 }).map((_, i) => (
