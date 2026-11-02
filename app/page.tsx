@@ -8,6 +8,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// ==========================================
+// 💡 管理者・スタッフにしたいメールアドレスをここに直接登録できます
+// ==========================================
+const ADMIN_EMAILS = [
+  'bb15125017@ms.nagasaki-u.ac.jp', // あなたのメールアドレス
+  // ほかの管理者のメールアドレスを追加したい場合はここに書き足せます
+]
+
+const STAFF_EMAILS = [
+  // 運営スタッフのメールアドレスを追加したい場合はここに書き足せます
+]
+
 export default function HomePage() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 9, 1))
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -15,36 +27,32 @@ export default function HomePage() {
   const [userEmail, setUserEmail] = useState('')
 
   useEffect(() => {
+    const updateRoleByEmail = (email: string) => {
+      setUserEmail(email)
+      if (ADMIN_EMAILS.includes(email)) {
+        setUserRole('admin')
+      } else if (STAFF_EMAILS.includes(email)) {
+        setUserRole('staff')
+      } else {
+        setUserRole('volunteer')
+      }
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setIsLoggedIn(true)
-        const email = session.user.email || ''
-        setUserEmail(email)
-        if (email.includes('admin')) {
-          setUserRole('admin')
-        } else if (email.includes('staff')) {
-          setUserRole('staff')
-        } else {
-          setUserRole('volunteer')
-        }
+        updateRoleByEmail(session.user.email || '')
       }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setIsLoggedIn(true)
-        const email = session.user.email || ''
-        setUserEmail(email)
-        if (email.includes('admin')) {
-          setUserRole('admin')
-        } else if (email.includes('staff')) {
-          setUserRole('staff')
-        } else {
-          setUserRole('volunteer')
-        }
+        updateRoleByEmail(session.user.email || '')
       } else {
         setIsLoggedIn(false)
         setUserEmail('')
+        setUserRole('volunteer')
       }
     })
 
@@ -56,6 +64,7 @@ export default function HomePage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setIsLoggedIn(false)
+    setUserRole('volunteer')
     alert('ログアウトしました')
   }
 
@@ -76,7 +85,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 右上：ログイン状態に応じた表示（管理画面ボタンをログアウト付近に配置） */}
+        {/* 右上：ログイン状態に応じた表示 */}
         <div className="flex items-center space-x-3">
           {isLoggedIn ? (
             <>
@@ -132,7 +141,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* メニュー (4つのカード：1番目に「初めての方へ」を配置) */}
+        {/* メニュー */}
         <div className="space-y-3">
           <p className="text-xs font-bold text-slate-400">メニュー</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -226,7 +235,7 @@ export default function HomePage() {
             <div className="text-[#00a6f4]">土</div>
           </div>
 
-          {/* カレンダーグリッド（各セルに「+追加」ボタンを配置） */}
+          {/* カレンダーグリッド */}
           <div className="grid grid-cols-7 gap-2">
             {Array.from({ length: 31 }, (_, i) => {
               const dayNum = i + 1
