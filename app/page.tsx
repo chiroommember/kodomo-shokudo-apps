@@ -46,7 +46,6 @@ export default function HomePage() {
   const [events, setEvents] = useState<EventItem[]>([])
   const [registrations, setRegistrations] = useState<RegistrationItem[]>([])
 
-  // 申込モーダル用のステート
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null)
   const [partTime, setPartTime] = useState('10:00 〜 14:00')
   const [partMessage, setPartMessage] = useState('')
@@ -109,7 +108,6 @@ export default function HomePage() {
     alert('ログアウトしました')
   }
 
-  // 参加申込実行
   const submitApply = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedEvent || !userEmail) return
@@ -137,7 +135,6 @@ export default function HomePage() {
     }
   }
 
-  // キャンセル
   const handleCancelApply = async (eventId: string, eventTitle: string) => {
     if (!userEmail) return
     if (!confirm(`「${eventTitle}」の参加をキャンセルしますか？`)) return
@@ -156,7 +153,6 @@ export default function HomePage() {
     }
   }
 
-  // イベント削除
   const handleDeleteEvent = async (eventId: string, eventTitle: string, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!confirm(`「${eventTitle}」を削除してもよろしいですか？`)) return
@@ -263,7 +259,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-7 gap-2">
             {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[130px] rounded-2xl bg-slate-50/20 border border-slate-100/40" />
+              <div key={`empty-${i}`} className="min-h-[140px] rounded-2xl bg-slate-50/20 border border-slate-100/40" />
             ))}
 
             {Array.from({ length: daysInMonth }, (_, i) => {
@@ -273,7 +269,7 @@ export default function HomePage() {
               const isToday = today.getFullYear() === year && today.getMonth() + 1 === month && today.getDate() === dayNum
 
               return (
-                <div key={dayNum} className={`min-h-[135px] p-2 rounded-2xl border transition flex flex-col justify-between bg-white ${isToday ? 'border-[#0095f6] border-2 shadow-xs' : 'border-sky-100'}`}>
+                <div key={dayNum} className={`min-h-[145px] p-2 rounded-2xl border transition flex flex-col justify-between bg-white ${isToday ? 'border-[#0095f6] border-2 shadow-xs' : 'border-sky-100'}`}>
                   <div className="flex items-center justify-between w-full">
                     <span className={`text-xs font-bold ${isToday ? 'w-5 h-5 bg-[#0095f6] text-white rounded-full flex items-center justify-center text-[11px]' : 'text-slate-500'}`}>{dayNum}</span>
                     {(userRole === 'staff' || userRole === 'admin') && (
@@ -281,7 +277,7 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  <div className="space-y-1.5 mt-1 overflow-y-auto max-h-[95px]">
+                  <div className="space-y-1.5 mt-1 overflow-y-auto max-h-[105px]">
                     {dayEvents.map((ev) => {
                       const eventRegs = registrations.filter((r) => r.event_id === ev.id)
                       const count = eventRegs.length
@@ -289,9 +285,9 @@ export default function HomePage() {
                       const isFull = count >= ev.capacity
 
                       return (
-                        <div key={ev.id} className="bg-sky-50/80 border border-sky-100 p-2 rounded-xl space-y-1 shadow-2xs">
+                        <div key={ev.id} className="bg-sky-50/70 border border-sky-100 p-2 rounded-xl space-y-1.5 shadow-2xs">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-[#0095f6] truncate" title={ev.title}>{ev.title}</span>
+                            <span className="text-[10px] font-bold text-[#0095f6] truncate" title={ev.title}>{ev.title}</span>
                             {(userRole === 'staff' || userRole === 'admin') && (
                               <button onClick={(e) => handleDeleteEvent(ev.id, ev.title, e)} className="text-slate-400 hover:text-rose-500 transition p-0.5" title="削除">
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
@@ -304,16 +300,16 @@ export default function HomePage() {
                           </div>
                           <div>
                             {isAlreadyApplied ? (
-                              <button onClick={() => handleCancelApply(ev.id, ev.title)} className="w-full py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-[10px] font-bold transition text-center">
+                              <button onClick={() => handleCancelApply(ev.id, ev.title)} className="w-full py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-[10px] font-bold transition text-center shadow-2xs">
                                 申込済み (取消)
                               </button>
                             ) : isFull ? (
-                              <div className="w-full py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-bold text-center">満員</div>
+                              <div className="w-full py-1.5 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-bold text-center">満員</div>
                             ) : (
                               <button onClick={() => {
                                 if (!isLoggedIn) { alert('参加するにはログインが必要です。'); return; }
                                 setSelectedEvent(ev);
-                              }} className="w-full py-1 bg-[#0095f6] hover:bg-sky-500 text-white rounded-lg text-[10px] font-bold transition text-center shadow-2xs">
+                              }} className="w-full py-1.5 bg-[#0095f6] hover:bg-sky-500 text-white rounded-lg text-[10px] font-bold transition text-center shadow-2xs">
                                 参加する
                               </button>
                             )}
