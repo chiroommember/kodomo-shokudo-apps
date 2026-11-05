@@ -14,7 +14,6 @@ export default function NewEventPage() {
   const [title, setTitle] = useState('')
   const [eventDate, setEventDate] = useState('')
   
-  // 開始時間と終了時間を個別のステートとして保持
   const [startTime, setStartTime] = useState('10:00')
   const [endTime, setEndTime] = useState('14:00')
 
@@ -23,17 +22,7 @@ export default function NewEventPage() {
   const [capacity, setCapacity] = useState('10')
   const [loading, setLoading] = useState(false)
 
-  // 選択肢の時間を生成（9:00 から 20:00 まで 30分刻み）
-  const timeOptions = []
-  for (let hour = 9; hour <= 20; hour++) {
-    for (let min of [0, 30]) {
-      const h = String(hour).padStart(2, '0')
-      const m = String(min).padStart(2, '0')
-      timeOptions.log?.(`${h}:${m}`) // 念のため
-      timeOptions.push(`${h}:${m}`)
-    }
-  }
-  // ※ 上記のログ部分はシンプルに以下のように配列を作ります
+  // 選択用の時間リスト
   const hoursList = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
     '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
@@ -45,7 +34,6 @@ export default function NewEventPage() {
     e.preventDefault()
     setLoading(true)
 
-    // 開始時間と終了時間を結合してフォーマット（例: "10:00 〜 14:00"）
     const formattedTime = `${startTime} 〜 ${endTime}`
 
     const { error } = await supabase.from('events').insert([
