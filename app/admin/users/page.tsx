@@ -20,7 +20,6 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<ProfileItem[]>([])
   const [loading, setLoading] = useState(true)
 
-  // 追加フォーム用のステート
   const [inputName, setInputName] = useState('')
   const [inputEmail, setInputEmail] = useState('')
 
@@ -40,7 +39,6 @@ export default function AdminUsersPage() {
     fetchUsers()
   }, [])
 
-  // 権限の変更処理
   const handleRoleChange = async (userId: string, newRole: string) => {
     const { error } = await supabase
       .from('profiles')
@@ -55,12 +53,10 @@ export default function AdminUsersPage() {
     }
   }
 
-  // 手動でアカウント（お名前・メール）を追加登録する処理
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputEmail) return
 
-    // すでに存在するか確認、または簡易追加
     const { error } = await supabase.from('profiles').insert([
       {
         email: inputEmail,
@@ -79,7 +75,6 @@ export default function AdminUsersPage() {
     }
   }
 
-  // ロールに応じたバッジの色とラベルを返す
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
@@ -93,30 +88,34 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 pb-16">
-      {/* ヘッダー */}
-      <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-20">
+      <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
         <div className="flex items-center space-x-3">
           <div className="w-11 h-11 bg-[#0095f6] text-white rounded-2xl flex items-center justify-center font-bold text-xl shadow-sm">
             ち
           </div>
           <div>
-            <h1 className="font-bold text-slate-900 text-lg leading-tight">ちるーむ</h1>
+            <h1 className="font-bold text-slate-900 text-lg leading-tight">管理者画面 - ユーザー管理</h1>
             <p className="text-[11px] text-slate-400 font-medium">長崎大学 こども食堂サポートサークル</p>
           </div>
         </div>
-        <Link
-          href="/"
-          className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition"
-        >
-          トップへ戻る
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/registrations"
+            className="px-4 py-2 text-xs font-bold text-[#0095f6] bg-sky-50 hover:bg-sky-100 rounded-full transition"
+          >
+            申込者一覧
+          </Link>
+          <Link
+            href="/"
+            className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition"
+          >
+            トップへ戻る
+          </Link>
+        </div>
       </header>
 
-      {/* メインコンテンツ */}
       <main className="max-w-4xl mx-auto px-6 pt-8 space-y-6">
         <div className="bg-white rounded-3xl p-8 border border-sky-100/70 shadow-2xs space-y-8">
-          
-          {/* タイトルエリア */}
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <h2 className="text-xl font-black text-slate-800 tracking-tight">ユーザー権限管理（管理者専用）</h2>
@@ -124,7 +123,6 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
-          {/* アカウント追加フォーム */}
           <div className="bg-sky-50/50 border border-sky-100/80 rounded-2xl p-5 space-y-4">
             <h3 className="text-xs font-bold text-[#0095f6] flex items-center gap-1.5">
               <span>+ 自分のアカウントを管理者として追加・登録</span>
@@ -148,14 +146,13 @@ export default function AdminUsersPage() {
               />
               <button
                 type="submit"
-                className="py-2 px-4 bg-[#0095f6] hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-2xs transition"
+                className="py-2 px-4 bg-[#0095f6] hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-2xs transition cursor-pointer"
               >
                 管理者権限を付与
               </button>
             </form>
           </div>
 
-          {/* ユーザー一覧テーブル */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-slate-400">ユーザー一覧と権限の切り替え</h3>
 
@@ -188,7 +185,7 @@ export default function AdminUsersPage() {
                           <select
                             value={user.role || 'volunteer'}
                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                            className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#0095f6] font-bold text-slate-700"
+                            className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#0095f6] font-bold text-slate-700 cursor-pointer"
                           >
                             <option value="admin">サークル員（全権管理者）</option>
                             <option value="staff">子ども食堂 運営スタッフ</option>
@@ -202,7 +199,6 @@ export default function AdminUsersPage() {
               </div>
             )}
           </div>
-
         </div>
       </main>
     </div>
