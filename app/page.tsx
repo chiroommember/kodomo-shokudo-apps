@@ -18,11 +18,17 @@ const STAFF_EMAILS: string[] = []
 type EventItem = {
   id: string
   title: string
-  event_date: string // "YYYY-MM-DD"
+  event_date: string
   time: string
   location: string
   description?: string
   capacity: number
+}
+
+type RegistrationItem = {
+  id: string
+  event_id: string
+  user_email: string
 }
 
 export default function HomePage() {
@@ -34,14 +40,20 @@ export default function HomePage() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
   const [today, setToday] = useState<Date>(new Date())
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<'volunteer' | 'staff' | 'admin'>('volunteer')
+  
   const [events, setEvents] = useState<EventItem[]>([])
+  const [registrations, setRegistrations] = useState<RegistrationItem[]>([])
 
-  const fetchEvents = async () => {
-    const { data, error } = await supabase.from('events').select('*')
-    if (!error && data) {
-      setEvents(data)
-    }
+  const fetchData = async () => {
+    // イベント取得
+    const { data: eventData } = await supabase.from('events').select('*')
+    if (eventData) setEvents(eventData)
+
+    // 申込状況取得
+    const { data: regData } = await supabase.from('registrations').select('*')
+    if (regData) setRegistrations(regData)
   }
 
   useEffect(() => {
@@ -62,6 +74,7 @@ export default function HomePage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setIsLoggedIn(true)
+        setUserEmail(session.user.email || null)
         updateRoleByEmail(session.user.email || '')
       }
     })
@@ -69,14 +82,16 @@ export default function HomePage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setIsLoggedIn(true)
+        setUserEmail(session.user.email || null)
         updateRoleByEmail(session.user.email || '')
       } else {
         setIsLoggedIn(false)
+        setUserEmail(null)
         setUserRole('volunteer')
       }
     })
 
-    fetchEvents()
+    fetchData()
 
     return () => {
       subscription.unsubscribe()
@@ -86,13 +101,66 @@ export default function HomePage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setIsLoggedIn(false)
+    setUserEmail(null)
     setUserRole('volunteer')
     alert('ログアウトしました')
   }
 
-  // イベント削除機能
+  // イベント参加申し込み
+  const handleApply = async (eventId: string, eventTitle: string, capacity: number) => {
+    if (!isLoggedIn || !userEmail) {
+      alert('イベントに参加するにはログインが必要です。')
+      return
+    }
+
+    // 現在の申込数チェック
+    const currentCount = registrations.filter((r) => r.event_id === eventId).length
+    if (currentCount >= capacity) {
+      alert('定員に達しているため、申し込めません。')
+      return
+    }
+
+    const { error } = await supabase.from('registrations').insert([
+      {
+        event_id: eventId,
+        user_email: userEmail,
+      },
+    ])
+
+    if (error) {
+      if (error.code === '23505') {
+        alert('すでにこのイベントには申し込んでいます。')
+      } else {
+        alert('申込に失敗しました: ' + error.message)
+      }
+    } else {
+      alert(`「${eventTitle}」に参加申し込みしました！`)
+      fetchData()
+    }
+  }
+
+  // 申込キャンセル
+  const handleCancelApply = async (eventId: string, eventTitle: string) => {
+    if (!userEmail) return
+    if (!confirm(`「${eventTitle}」の参加をキャンセルしますか？`)) return
+
+    const { error } = await supabase
+      .from('registrations')
+      .delete()
+      .eq('event_id', eventId)
+      .eq('user_email', userEmail)
+
+    if (error) {
+      alert('キャンセルに失敗しました: ' + error.message)
+    } else {
+      alert('参加申し込みをキャンセルしました')
+      fetchData()
+    }
+  }
+
+  // イベント削除
   const handleDeleteEvent = async (eventId: string, eventTitle: string, e: React.MouseEvent) => {
-    e.stopPropagation() // セルのクリックイベント等へのバブリングを防止
+    e.stopPropagation()
     if (!confirm(`「${eventTitle}」を削除してもよろしいですか？`)) return
 
     const { error } = await supabase.from('events').delete().eq('id', eventId)
@@ -100,24 +168,16 @@ export default function HomePage() {
       alert('削除に失敗しました: ' + error.message)
     } else {
       alert('イベントを削除しました')
-      fetchEvents() // 一覧を再取得して画面を更新
+      fetchData()
     }
   }
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth() + 1
 
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, currentDate.getMonth() - 1, 1))
-  }
-
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(year, currentDate.getMonth() + 1, 1))
-  }
-
-  const handleCurrentMonth = () => {
-    setCurrentDate(getJSTDate())
-  }
+  const handlePrevMonth = () => setCurrentDate(new Date(year, currentDate.getMonth() - 1, 1))
+  const handleNextMonth = () => setCurrentDate(new Date(year, currentDate.getMonth() + 1, 1))
+  const handleCurrentMonth = () => setCurrentDate(getJSTDate())
 
   const daysInMonth = new Date(year, month, 0).getDate()
   const firstDayOfWeek = new Date(year, month - 1, 1).getDay()
@@ -136,7 +196,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 右上：管理者ボタンとログアウト */}
         <div className="flex items-center space-x-3">
           {isLoggedIn ? (
             <>
@@ -148,6 +207,7 @@ export default function HomePage() {
                   管理者
                 </Link>
               )}
+              <span className="text-xs text-slate-500 font-bold hidden sm:inline">{userEmail}</span>
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition"
@@ -179,9 +239,6 @@ export default function HomePage() {
         {/* ヒーローバナー */}
         <div className="bg-[#f0f7ff] border border-sky-100/70 rounded-3xl p-7 space-y-2.5">
           <div className="inline-flex items-center gap-2 text-xs font-bold text-[#0095f6] bg-white px-3.5 py-1 rounded-full border border-sky-100 shadow-2xs">
-            <svg className="w-3.5 h-3.5 text-sky-400 fill-current" viewBox="0 0 24 24">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
             <span>ごはんを通じて繋がる、笑顔の輪。</span>
           </div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight">
@@ -192,47 +249,20 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* メニュー 4列 */}
+        {/* メニュー */}
         <div className="space-y-3">
           <p className="text-xs font-bold text-slate-400">メニュー</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <Link
-              href="/about"
-              className="p-5 bg-[#0070f3] hover:bg-blue-600 text-white rounded-3xl shadow-sm transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2.5 group"
-            >
-              <svg className="w-6 h-6 text-white stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+            <Link href="/about" className="p-5 bg-[#0070f3] hover:bg-blue-600 text-white rounded-3xl shadow-sm transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2.5">
               <h3 className="text-xs font-bold">初めての方へ</h3>
             </Link>
-
-            <Link
-              href="/shokudo"
-              className="p-5 bg-white hover:border-sky-300 rounded-3xl border border-sky-100/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2.5"
-            >
-              <svg className="w-6 h-6 text-sky-500 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
+            <Link href="/shokudo" className="p-5 bg-white hover:border-sky-300 rounded-3xl border border-sky-100/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2.5">
               <h3 className="text-xs font-bold text-slate-700">子ども食堂一覧</h3>
             </Link>
-
-            <Link
-              href="/mypage"
-              className="p-5 bg-white hover:border-sky-300 rounded-3xl border border-sky-100/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2.5"
-            >
-              <svg className="w-6 h-6 text-sky-500 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+            <Link href="/mypage" className="p-5 bg-white hover:border-sky-300 rounded-3xl border border-sky-100/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2.5">
               <h3 className="text-xs font-bold text-slate-700">マイページ・申込履歴</h3>
             </Link>
-
-            <Link
-              href="/checkin"
-              className="p-5 bg-[#fffdf0] hover:border-amber-300 rounded-3xl border border-amber-200/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2.5"
-            >
-              <svg className="w-6 h-6 text-amber-500 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
+            <Link href="/checkin" className="p-5 bg-[#fffdf0] hover:border-amber-300 rounded-3xl border border-amber-200/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[120px] space-y-2.5">
               <h3 className="text-xs font-bold text-slate-800">出席管理（当日用）</h3>
             </Link>
           </div>
@@ -242,9 +272,6 @@ export default function HomePage() {
         <div className="bg-white rounded-3xl p-6 border border-sky-100/70 shadow-2xs space-y-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#008ce6] flex items-center gap-2">
-              <svg className="w-4 h-4 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
               活動・開催予定カレンダー
             </h3>
           </div>
@@ -254,24 +281,9 @@ export default function HomePage() {
               {year}年 {month}月
             </h4>
             <div className="flex items-center space-x-2">
-              <button
-                onClick={handlePrevMonth}
-                className="px-3.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full text-xs font-bold transition"
-              >
-                前月
-              </button>
-              <button
-                onClick={handleCurrentMonth}
-                className="px-4 py-1 bg-[#00a6f4] text-white rounded-full text-xs font-bold shadow-2xs"
-              >
-                今月
-              </button>
-              <button
-                onClick={handleNextMonth}
-                className="px-3.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full text-xs font-bold transition"
-              >
-                次月
-              </button>
+              <button onClick={handlePrevMonth} className="px-3.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full text-xs font-bold transition">前月</button>
+              <button onClick={handleCurrentMonth} className="px-4 py-1 bg-[#00a6f4] text-white rounded-full text-xs font-bold shadow-2xs">今月</button>
+              <button onClick={handleNextMonth} className="px-3.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full text-xs font-bold transition">次月</button>
             </div>
           </div>
 
@@ -289,7 +301,7 @@ export default function HomePage() {
           {/* カレンダーグリッド */}
           <div className="grid grid-cols-7 gap-2">
             {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[95px] rounded-2xl bg-slate-50/30 border border-slate-100/50" />
+              <div key={`empty-${i}`} className="min-h-[110px] rounded-2xl bg-slate-50/30 border border-slate-100/50" />
             ))}
 
             {Array.from({ length: daysInMonth }, (_, i) => {
@@ -308,7 +320,7 @@ export default function HomePage() {
               return (
                 <div
                   key={dayNum}
-                  className={`min-h-[105px] p-2 rounded-2xl border transition flex flex-col justify-between ${
+                  className={`min-h-[120px] p-2 rounded-2xl border transition flex flex-col justify-between ${
                     isToday
                       ? 'border-[#0095f6] border-2 bg-white'
                       : 'border-sky-100 bg-white hover:border-sky-300'
@@ -334,28 +346,68 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  {/* 登録されたイベントの表示（削除ボタン付き） */}
-                  <div className="space-y-1 mt-1 overflow-y-auto max-h-[70px]">
-                    {dayEvents.map((ev) => (
-                      <div
-                        key={ev.id}
-                        className="bg-sky-50 border border-sky-100 text-[#0095f6] px-2 py-1 rounded-xl text-[10px] font-bold flex items-center justify-between shadow-2xs group"
-                        title={`${ev.title} (${ev.time})`}
-                      >
-                        <span className="truncate pr-1">{ev.title}</span>
-                        {(userRole === 'staff' || userRole === 'admin') && (
-                          <button
-                            onClick={(e) => handleDeleteEvent(ev.id, ev.title, e)}
-                            className="text-slate-400 hover:text-rose-500 transition p-0.5"
-                            title="イベントを削除"
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                  {/* 登録されたイベントの表示 */}
+                  <div className="space-y-1.5 mt-1 overflow-y-auto max-h-[85px]">
+                    {dayEvents.map((ev) => {
+                      const eventRegs = registrations.filter((r) => r.event_id === ev.id)
+                      const count = eventRegs.length
+                      const isAlreadyApplied = userEmail ? eventRegs.some((r) => r.user_email === userEmail) : false
+                      const isFull = count >= ev.capacity
+
+                      return (
+                        <div
+                          key={ev.id}
+                          className="bg-sky-50 border border-sky-100 p-1.5 rounded-xl space-y-1 shadow-2xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-[#0095f6] truncate" title={ev.title}>
+                              {ev.title}
+                            </span>
+                            {(userRole === 'staff' || userRole === 'admin') && (
+                              <button
+                                onClick={(e) => handleDeleteEvent(ev.id, ev.title, e)}
+                                className="text-slate-400 hover:text-rose-500 transition p-0.5"
+                                title="削除"
+                              >
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between text-[9px] text-slate-500">
+                            <span>{ev.time}</span>
+                            <span className={isFull ? 'text-rose-500 font-bold' : 'text-slate-600'}>
+                              申込: {count}/{ev.capacity}人
+                            </span>
+                          </div>
+
+                          {/* 参加申込・キャンセルボタン */}
+                          <div>
+                            {isAlreadyApplied ? (
+                              <button
+                                onClick={() => handleCancelApply(ev.id, ev.title)}
+                                className="w-full py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded text-[9px] font-bold transition text-center"
+                              >
+                                申込済み (取消)
+                              </button>
+                            ) : isFull ? (
+                              <div className="w-full py-0.5 bg-slate-100 text-slate-400 rounded text-[9px] font-bold text-center">
+                                受付終了（満員）
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleApply(ev.id, ev.title, ev.capacity)}
+                                className="w-full py-0.5 bg-[#0095f6] hover:bg-sky-500 text-white rounded text-[9px] font-bold transition text-center shadow-2xs"
+                              >
+                                参加する
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )
