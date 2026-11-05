@@ -60,7 +60,8 @@ export default function AdminUsersPage() {
       <main className="max-w-4xl mx-auto px-6 pt-8 space-y-6">
         <div className="bg-white rounded-3xl p-8 border border-sky-100/70 shadow-2xs space-y-6">
           <div className="space-y-1">
-            登録されたユーザー一覧
+            <h2 className="text-base font-black text-slate-800">登録されたユーザー一覧</h2>
+            <p className="text-xs text-slate-400">サークルに参加登録したメンバーの一覧です。</p>
           </div>
 
           {loading ? (
