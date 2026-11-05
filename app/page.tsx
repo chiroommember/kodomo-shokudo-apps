@@ -72,7 +72,6 @@ export default function HomePage() {
     setToday(jstToday)
 
     const updateRoleByEmail = async (email: string) => {
-      // データベース上のプロフィールのロールも確認
       const { data: prof } = await supabase
         .from('profiles')
         .select('role')
@@ -204,7 +203,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 pb-16">
-      {/* ヘッダー */}
       <header className="bg-white border-b border-slate-100 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
         <div className="flex items-center space-x-2.5">
           <div className="w-9 h-9 sm:w-11 sm:h-11 bg-[#0095f6] text-white rounded-2xl flex items-center justify-center font-bold text-base sm:text-xl shadow-sm">
@@ -238,7 +236,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* メイン */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6 space-y-6">
         <div className="bg-[#f0f7ff] border border-sky-100/70 rounded-3xl p-5 sm:p-7 space-y-2">
           <div className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-bold text-[#0095f6] bg-white px-3.5 py-1 rounded-full border border-sky-100 shadow-2xs">
@@ -248,7 +245,6 @@ export default function HomePage() {
           <p className="text-[11px] sm:text-xs text-slate-400 font-medium">活動予定の確認や参加申込が簡単に行えます。</p>
         </div>
 
-        {/* メニュー */}
         <div className="space-y-2.5">
           <p className="text-xs font-bold text-slate-400">メニュー</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -271,7 +267,6 @@ export default function HomePage() {
               <h3 className="text-[11px] sm:text-xs font-bold text-slate-700">マイページ・申込履歴</h3>
             </Link>
 
-            {/* 出席管理は管理者(admin)またはスタッフ(staff)のみ表示 */}
             {(userRole === 'admin' || userRole === 'staff') && (
               <Link href="/checkin" className="p-4 sm:p-5 bg-[#fffdf0] hover:border-amber-300 rounded-3xl border border-amber-200/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[100px] sm:min-h-[110px] space-y-2 col-span-2 sm:col-span-1">
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -283,7 +278,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* カレンダー */}
         <div className="bg-white rounded-3xl p-4 sm:p-6 border border-sky-100/70 shadow-2xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 pb-2">
             <h4 className="text-base sm:text-lg font-bold text-slate-800">{year}年 {month}月</h4>
@@ -326,3 +320,114 @@ export default function HomePage() {
 
                   <div className="space-y-1 mt-1 overflow-y-auto max-h-[85px] sm:max-h-[105px]">
                     {dayEvents.map((ev) => {
+                      const eventRegs = registrations.filter((r) => r.event_id === ev.id)
+                      const count = eventRegs.length
+                      const isAlreadyApplied = userEmail ? eventRegs.some((r) => r.user_email === userEmail) : false
+                      const isFull = count >= ev.capacity
+
+                      return (
+                        <div key={ev.id} className="bg-sky-50/70 border border-sky-100 p-1.5 sm:p-2 rounded-xl space-y-1 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] sm:text-[10px] font-bold text-[#0095f6] truncate" title={ev.title}>{ev.title}</span>
+                            {(userRole === 'staff' || userRole === 'admin') && (
+                              <button onClick={(e) => handleDeleteEvent(ev.id, ev.title, e)} className="text-slate-400 hover:text-rose-500 transition p-0.5 cursor-pointer" title="削除">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[8px] sm:text-[9px] text-slate-500 font-medium">
+                            <span className="truncate">{ev.time}</span>
+                            <span className={isFull ? 'text-rose-500 font-bold' : 'text-slate-600'}>申込 {count}/{ev.capacity}</span>
+                          </div>
+                          <div>
+                            {isAlreadyApplied ? (
+                              <button onClick={() => handleCancelApply(ev.id, ev.title)} className="w-full py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-[9px] sm:text-[10px] font-bold transition text-center shadow-2xs cursor-pointer">
+                                申込済み (取消)
+                              </button>
+                            ) : isFull ? (
+                              <div className="w-full py-1 bg-slate-100 text-slate-400 rounded-lg text-[9px] sm:text-[10px] font-bold text-center">満員</div>
+                            ) : (
+                              <button onClick={() => handleOpenModal(ev)} className="w-full py-1 bg-[#0095f6] hover:bg-sky-500 text-white rounded-lg text-[9px] sm:text-[10px] font-bold transition text-center shadow-2xs cursor-pointer">
+                                参加する
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </main>
+
+      {selectedEvent && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-xl space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-slate-800">イベント参加お申し込み</h3>
+              <p className="text-xs font-bold text-[#0095f6]">{selectedEvent.title}</p>
+              <p className="text-[11px] text-slate-400 font-medium">イベント開催時間: {selectedEvent.time}</p>
+            </div>
+
+            <form onSubmit={submitApply} className="space-y-3.5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600">参加希望時間（30分刻みで選択）</label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6] font-bold text-slate-700"
+                  >
+                    {hoursList.map((time) => (
+                      <option key={`p-start-${time}`} value={time}>{time}</option>
+                    ))}
+                  </select>
+                  <span className="text-xs font-bold text-slate-400">〜</span>
+                  <select
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6] font-bold text-slate-700"
+                  >
+                    {hoursList.map((time) => (
+                      <option key={`p-end-${time}`} value={time}>{time}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600">ひとことメッセージ・質問など</label>
+                <textarea
+                  rows={3}
+                  placeholder="例：少し遅れて到着するかもしれません。よろしくお願いいたします！"
+                  value={partMessage}
+                  onChange={(e) => setPartMessage(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6] resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedEvent(null)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  やめる
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#0095f6] hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-2xs transition cursor-pointer"
+                >
+                  申し込む
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
