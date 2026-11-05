@@ -16,17 +16,22 @@ const ADMIN_EMAILS = [
 const STAFF_EMAILS: string[] = []
 
 export default function HomePage() {
-  // アクセス時の現在日時を自動取得して初期化
+  // 日本時間（JST）で今日の日付を取得するヘルパー関数
+  const getJSTDate = () => {
+    const now = new Date()
+    return new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }))
+  }
+
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
   const [today, setToday] = useState<Date>(new Date())
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState<'volunteer' | 'staff' | 'admin'>('volunteer')
 
   useEffect(() => {
-    // コンポーネント読み込み時に最新の日付をセット
-    const now = new Date()
-    setCurrentDate(now)
-    setToday(now)
+    // クライアント側で確実に日本時間（JST）の今日をセット
+    const jstToday = getJSTDate()
+    setCurrentDate(jstToday)
+    setToday(jstToday)
 
     const updateRoleByEmail = (email: string) => {
       if (ADMIN_EMAILS.includes(email)) {
@@ -81,7 +86,7 @@ export default function HomePage() {
   }
 
   const handleCurrentMonth = () => {
-    setCurrentDate(new Date())
+    setCurrentDate(getJSTDate())
   }
 
   // 該当月の日数と1日の曜日を取得
