@@ -13,21 +13,46 @@ export default function NewEventPage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [eventDate, setEventDate] = useState('')
-  const [time, setTime] = useState('')
+  
+  // 開始時間と終了時間を個別のステートとして保持
+  const [startTime, setStartTime] = useState('10:00')
+  const [endTime, setEndTime] = useState('14:00')
+
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
   const [capacity, setCapacity] = useState('10')
   const [loading, setLoading] = useState(false)
 
+  // 選択肢の時間を生成（9:00 から 20:00 まで 30分刻み）
+  const timeOptions = []
+  for (let hour = 9; hour <= 20; hour++) {
+    for (let min of [0, 30]) {
+      const h = String(hour).padStart(2, '0')
+      const m = String(min).padStart(2, '0')
+      timeOptions.log?.(`${h}:${m}`) // 念のため
+      timeOptions.push(`${h}:${m}`)
+    }
+  }
+  // ※ 上記のログ部分はシンプルに以下のように配列を作ります
+  const hoursList = [
+    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
+    '18:00', '18:30', '19:00', '19:30', '20:00'
+  ]
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+
+    // 開始時間と終了時間を結合してフォーマット（例: "10:00 〜 14:00"）
+    const formattedTime = `${startTime} 〜 ${endTime}`
 
     const { error } = await supabase.from('events').insert([
       {
         title,
         event_date: eventDate,
-        time,
+        time: formattedTime,
         location,
         description,
         capacity: parseInt(capacity, 10),
@@ -103,17 +128,34 @@ export default function NewEventPage() {
               />
             </div>
 
-            {/* 時間 */}
+            {/* 時間（セレクトボックス選択式） */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-600">時間</label>
-              <input
-                type="text"
-                required
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                placeholder="例：10:00 〜 14:00"
-                className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#0095f6] bg-slate-50/50"
-              />
+              <div className="flex items-center gap-2">
+                <select
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#0095f6] bg-slate-50/50"
+                >
+                  {hoursList.map((time) => (
+                    <option key={`start-${time}`} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs font-bold text-slate-400">〜</span>
+                <select
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#0095f6] bg-slate-50/50"
+                >
+                  {hoursList.map((time) => (
+                    <option key={`end-${time}`} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* 場所 */}
@@ -142,7 +184,7 @@ export default function NewEventPage() {
                 className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#0095f6] bg-slate-50/50"
               />
               <p className="text-[10px] text-slate-400">
-                ※ 申込数が定員に達した場合、自動的に受付終了（非表示・満員表示）となります。
+                ※ 申込数が定員に達した場合、自動的に受付終了となります。
               </p>
             </div>
 
