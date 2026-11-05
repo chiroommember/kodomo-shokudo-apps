@@ -47,8 +47,17 @@ export default function HomePage() {
   const [registrations, setRegistrations] = useState<RegistrationItem[]>([])
 
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null)
-  const [partTime, setPartTime] = useState('10:00 〜 14:00')
+  const [startTime, setStartTime] = useState('10:00')
+  const [endTime, setEndTime] = useState('14:00')
   const [partMessage, setPartMessage] = useState('')
+
+  // 30分刻みの時間リスト
+  const hoursList = [
+    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
+    '18:00', '18:30', '19:00', '19:30', '20:00'
+  ]
 
   const fetchData = async () => {
     const { data: eventData } = await supabase.from('events').select('*')
@@ -108,16 +117,31 @@ export default function HomePage() {
     alert('ログアウトしました')
   }
 
+  const handleOpenModal = (ev: EventItem) => {
+    if (!isLoggedIn) {
+      alert('参加するにはログインが必要です。')
+      return
+    }
+    setSelectedEvent(ev)
+    // イベントの時間設定（例: "10:00 〜 14:00"）を分解して初期値にセット
+    const times = ev.time ? ev.time.split(' 〜 ') : ['10:00', '14:00']
+    setStartTime(times[0] || '10:00')
+    setEndTime(times[1] || '14:00')
+    setPartMessage('')
+  }
+
   const submitApply = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedEvent || !userEmail) return
+
+    const formattedParticipationTime = `${startTime} 〜 ${endTime}`
 
     const { error } = await supabase.from('registrations').insert([
       {
         event_id: selectedEvent.id,
         user_email: userEmail,
         message: partMessage,
-        participation_time: partTime,
+        participation_time: formattedParticipationTime,
       },
     ])
 
@@ -217,20 +241,32 @@ export default function HomePage() {
           <p className="text-xs text-slate-400 font-medium">活動予定の確認や参加申込が簡単に行えます。</p>
         </div>
 
-        {/* メニュー */}
+        {/* メニュー（アイコン付き） */}
         <div className="space-y-3">
           <p className="text-xs font-bold text-slate-400">メニュー</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <Link href="/about" className="p-5 bg-[#0070f3] hover:bg-blue-600 text-white rounded-3xl shadow-sm transition flex flex-col items-center justify-center text-center min-h-[110px] space-y-2">
+              <svg className="w-6 h-6 text-white stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
               <h3 className="text-xs font-bold">初めての方へ</h3>
             </Link>
             <Link href="/shokudo" className="p-5 bg-white hover:border-sky-300 rounded-3xl border border-sky-100/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[110px] space-y-2">
+              <svg className="w-6 h-6 text-sky-500 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
               <h3 className="text-xs font-bold text-slate-700">子ども食堂一覧</h3>
             </Link>
             <Link href="/mypage" className="p-5 bg-white hover:border-sky-300 rounded-3xl border border-sky-100/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[110px] space-y-2">
+              <svg className="w-6 h-6 text-sky-500 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
               <h3 className="text-xs font-bold text-slate-700">マイページ・申込履歴</h3>
             </Link>
             <Link href="/checkin" className="p-5 bg-[#fffdf0] hover:border-amber-300 rounded-3xl border border-amber-200/80 shadow-2xs transition flex flex-col items-center justify-center text-center min-h-[110px] space-y-2">
+              <svg className="w-6 h-6 text-amber-500 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
               <h3 className="text-xs font-bold text-slate-800">出席管理（当日用）</h3>
             </Link>
           </div>
@@ -306,10 +342,7 @@ export default function HomePage() {
                             ) : isFull ? (
                               <div className="w-full py-1.5 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-bold text-center">満員</div>
                             ) : (
-                              <button onClick={() => {
-                                if (!isLoggedIn) { alert('参加するにはログインが必要です。'); return; }
-                                setSelectedEvent(ev);
-                              }} className="w-full py-1.5 bg-[#0095f6] hover:bg-sky-500 text-white rounded-lg text-[10px] font-bold transition text-center shadow-2xs">
+                              <button onClick={() => handleOpenModal(ev)} className="w-full py-1.5 bg-[#0095f6] hover:bg-sky-500 text-white rounded-lg text-[10px] font-bold transition text-center shadow-2xs">
                                 参加する
                               </button>
                             )}
@@ -325,28 +358,43 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* 参加詳細モーダル */}
+      {/* 参加詳細モーダル（30分ごとの時間選択式） */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-xl space-y-5 animate-in fade-in zoom-in-95">
             <div className="space-y-1">
               <h3 className="text-base font-black text-slate-800">イベント参加お申し込み</h3>
               <p className="text-xs font-bold text-[#0095f6]">{selectedEvent.title}</p>
+              <p className="text-[11px] text-slate-400 font-medium">イベント開催時間: {selectedEvent.time}</p>
             </div>
 
             <form onSubmit={submitApply} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-600">参加希望時間</label>
-                <select
-                  value={partTime}
-                  onChange={(e) => setPartTime(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6]"
-                >
-                  <option value="10:00 〜 14:00">10:00 〜 14:00 (全日程)</option>
-                  <option value="10:00 〜 12:00">10:00 〜 12:00 (午前のみ)</option>
-                  <option value="12:00 〜 14:00">12:00 〜 14:00 (午後のみ)</option>
-                  <option value="ご相談（その他）">ご相談（その他）</option>
-                </select>
+                <label className="text-xs font-bold text-slate-600">参加希望時間（30分刻みで選択）</label>
+                <div className="flex items-center gap-2">
+                  {/* 開始時間 */}
+                  <select
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6] font-bold text-slate-700"
+                  >
+                    {hoursList.map((time) => (
+                      <option key={`p-start-${time}`} value={time}>{time}</option>
+                    ))}
+                  </select>
+                  <span className="text-xs font-bold text-slate-400">〜</span>
+                  {/* 終了時間 */}
+                  <select
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6] font-bold text-slate-700"
+                  >
+                    {hoursList.map((time) => (
+                      <option key={`p-end-${time}`} value={time}>{time}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-[10px] text-slate-400">※ご自身が参加できる時間帯（30分ごと）をプルダウンから選択してください。</p>
               </div>
 
               <div className="space-y-1.5">
