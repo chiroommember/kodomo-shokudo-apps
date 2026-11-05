@@ -1,153 +1,168 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+type RegistrationWithEvent = {
+  id: string
+  event_id: string
+  user_email: string
+  message?: string
+  participation_time?: string
+  created_at: string
+  events: {
+    title: string
+    event_date: string
+    time: string
+    location: string
+  }
+}
 
 export default function MyPage() {
-  const [formData, setFormData] = useState({
-    name: '長崎 太郎',
-    email: 'taro@example.com',
-    phone: '090-1234-5678',
-    role: 'ボランティア参加希望',
-    faculty: '長崎大学 教育学部 2年',
-    emergencyContact: '090-9999-9999',
-    allergies: 'なし',
-  })
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [registrations, setRegistrations] = useState<RegistrationWithEvent[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [isEditing, setIsEditing] = useState(false)
+  const fetchMyRegistrations = async (email: string) => {
+    const { data, error } = await supabase
+      .from('registrations')
+      .select(`
+        id,
+        event_id,
+        user_email,
+        message,
+        participation_time,
+        created_at,
+        events (
+          title,
+          event_date,
+          time,
+          location
+        )
+      `)
+      .eq('user_email', email)
+      .order('created_at', { ascending: false })
 
-  const handleUpdate = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsEditing(false)
-    alert('プロフィール設定を更新しました！')
+    if (!error && data) {
+      setRegistrations(data as unknown as RegistrationWithEvent[])
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session && session.user.email) {
+        setUserEmail(session.user.email)
+        fetchMyRegistrations(session.user.email)
+      } else {
+        setLoading(false)
+      }
+    })
+  }, [])
+
+  const handleCancel = async (eventId: string, title: string) => {
+    if (!userEmail) return
+    if (!confirm(`「${title}」の参加をキャンセルしますか？`)) return
+
+    const { error } = await supabase
+      .from('registrations')
+      .delete()
+      .eq('event_id', eventId)
+      .eq('user_email', userEmail)
+
+    if (error) {
+      alert('キャンセルに失敗しました: ' + error.message)
+    } else {
+      alert('キャンセルしました')
+      fetchMyRegistrations(userEmail)
+    }
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 flex flex-col items-center">
-      <div className="max-w-2xl w-full bg-white rounded-3xl p-8 shadow-sm border border-slate-100 space-y-8 my-6">
-        {/* ヘッダー */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">マイページ・アカウント設定</h1>
-            <p className="text-xs text-slate-400 mt-0.5">登録情報の確認・変更および参加予定イベントの管理</p>
+    <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 pb-16">
+      {/* ヘッダー */}
+      <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
+        <div className="flex items-center space-x-3">
+          <div className="w-11 h-11 bg-[#0095f6] text-white rounded-2xl flex items-center justify-center font-bold text-xl shadow-sm">
+            ち
           </div>
-          <Link href="/" className="text-xs text-[#00a6f4] font-bold hover:underline">
-            ← トップへ戻る
-          </Link>
+          <div>
+            <h1 className="font-bold text-slate-900 text-lg leading-tight">マイページ</h1>
+            <p className="text-[11px] text-slate-400 font-medium">長崎大学 こども食堂サポートサークル</p>
+          </div>
         </div>
+        <Link href="/" className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition">
+          トップへ戻る
+        </Link>
+      </header>
 
-        {/* プロフィール・設定セクション */}
-        <div className="bg-sky-50/60 rounded-2xl p-6 border border-sky-100 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-bold text-sky-900 uppercase tracking-wider">登録プロフィール設定</h2>
-            {!isEditing ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-3 py-1.5 bg-[#00a6f4] text-white rounded-xl text-xs font-bold shadow-sm hover:bg-sky-600 transition"
-              >
-                編集する
-              </button>
+      {/* メイン */}
+      <main className="max-w-4xl mx-auto px-6 pt-8 space-y-6">
+        <div className="bg-white rounded-3xl p-8 border border-sky-100/70 shadow-2xs space-y-8">
+          
+          <div className="space-y-1">
+            <h2 className="text-xl font-black text-slate-800 tracking-tight">マイページ・アカウント設定</h2>
+            <p className="text-xs text-slate-400 font-medium">登録情報の確認および参加予定イベントの管理が行えます。</p>
+          </div>
+
+          {/* プロフィール表示カード */}
+          <div className="bg-sky-50/50 border border-sky-100/80 rounded-2xl p-5 space-y-3">
+            <h3 className="text-xs font-bold text-[#0095f6]">ログイン中のアカウント</h3>
+            <div className="text-xs font-bold text-slate-700">
+              {userEmail ? userEmail : 'ログインしていません'}
+            </div>
+          </div>
+
+          {/* 参加予定イベント履歴 */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-slate-400">📅 自分の参加予定イベント履歴</h3>
+
+            {loading ? (
+              <p className="text-xs text-slate-400">読み込み中...</p>
+            ) : registrations.length === 0 ? (
+              <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-2xl text-center text-xs text-slate-400">
+                現在、参加予定のイベントはありません。カレンダーから参加してみてください！
+              </div>
             ) : (
-              <button
-                onClick={() => setIsEditing(false)}
-                className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-300 transition"
-              >
-                キャンセル
-              </button>
+              <div className="space-y-3">
+                {registrations.map((reg) => (
+                  <div key={reg.id} className="p-5 bg-white border border-sky-100 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-slate-800">{reg.events?.title || 'イベント'}</span>
+                        <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]">申込済み</span>
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium">
+                        開催日: {reg.events?.event_date}（{reg.events?.time}）
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        場所: {reg.events?.location}
+                      </p>
+                      <div className="pt-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl space-y-1">
+                        <p><strong className="text-slate-700">希望時間:</strong> {reg.participation_time || '未設定'}</p>
+                        <p><strong className="text-slate-700">ひとこと:</strong> {reg.message || 'なし'}</p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleCancel(reg.event_id, reg.events?.title)}
+                      className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition self-start sm:self-center shrink-0"
+                    >
+                      参加をキャンセル
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          {!isEditing ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-1">
-                <p className="text-slate-400 font-bold">お名前</p>
-                <p className="font-bold text-slate-800">{formData.name}</p>
-              </div>
-              <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-1">
-                <p className="text-slate-400 font-bold">ご区分</p>
-                <p className="font-bold text-sky-600">{formData.role}</p>
-              </div>
-              <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-1">
-                <p className="text-slate-400 font-bold">メールアドレス</p>
-                <p className="font-bold text-slate-800">{formData.email}</p>
-              </div>
-              <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-1">
-                <p className="text-slate-400 font-bold">電話番号</p>
-                <p className="font-bold text-slate-800">{formData.phone}</p>
-              </div>
-              <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-1">
-                <p className="text-slate-400 font-bold">所属・学校名・学年</p>
-                <p className="font-bold text-slate-800">{formData.faculty}</p>
-              </div>
-              <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-1">
-                <p className="text-slate-400 font-bold">緊急連絡先・アレルギー等</p>
-                <p className="font-bold text-slate-800">{formData.emergencyContact} / {formData.allergies}</p>
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleUpdate} className="space-y-4 pt-2">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">お名前</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2.5 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#00a6f4]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">メールアドレス</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2.5 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#00a6f4]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">電話番号</label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-2.5 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#00a6f4]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">所属・学校名・学年</label>
-                <input
-                  type="text"
-                  value={formData.faculty}
-                  onChange={(e) => setFormData({ ...formData, faculty: e.target.value })}
-                  className="w-full px-4 py-2.5 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#00a6f4]"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-3 bg-[#00a6f4] text-white font-bold rounded-xl text-xs shadow-sm hover:bg-sky-600 transition"
-              >
-                変更を保存する
-              </button>
-            </form>
-          )}
         </div>
-
-        {/* 参加予定イベント一覧 */}
-        <div className="space-y-3">
-          <h2 className="text-xs font-bold text-slate-700">📅 自分の参加予定イベント履歴</h2>
-          <div className="space-y-2">
-            <div className="p-4 bg-white rounded-2xl border border-slate-100 flex items-center justify-between text-xs shadow-sm">
-              <div>
-                <p className="font-bold text-slate-800">長崎大学前 こども食堂</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">2026年10月10日（土） 17:00〜</p>
-              </div>
-              <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
-                申込済み
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
+      </main>
+    </div>
   )
 }
