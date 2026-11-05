@@ -8,6 +8,16 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+type ProfileType = {
+  id: string
+  email: string
+  name?: string
+  role?: string
+  phone?: string
+  affiliation?: string
+  emergency_contact?: string
+}
+
 type RegistrationWithEvent = {
   id: string
   event_id: string
@@ -25,11 +35,36 @@ type RegistrationWithEvent = {
 
 export default function MyPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [profile, setProfile] = useState<ProfileType | null>(null)
   const [registrations, setRegistrations] = useState<RegistrationWithEvent[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchMyRegistrations = async (email: string) => {
-    const { data, error } = await supabase
+  // 編集モーダル用のステート
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editAffiliation, setEditAffiliation] = useState('')
+  const [editEmergency, setEditEmergency] = useState('')
+
+  const fetchProfileAndRegs = async (id: string, email: string) => {
+    // プロフィール取得
+    const { data: profData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (profData) {
+      setProfile(profData)
+      setEditName(profData.name || '')
+      setEditPhone(profData.phone || '')
+      setEditAffiliation(profData.affiliation || '')
+      setEditEmergency(profData.emergency_contact || '')
+    }
+
+    // 参加予定イベント取得
+    const { data: regData } = await supabase
       .from('registrations')
       .select(`
         id,
@@ -48,25 +83,50 @@ export default function MyPage() {
       .eq('user_email', email)
       .order('created_at', { ascending: false })
 
-    if (!error && data) {
-      setRegistrations(data as unknown as RegistrationWithEvent[])
+    if (regData) {
+      setRegistrations(regData as unknown as RegistrationWithEvent[])
     }
     setLoading(false)
   }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session && session.user.email) {
-        setUserEmail(session.user.email)
-        fetchMyRegistrations(session.user.email)
+      if (session && session.user) {
+        setUserEmail(session.user.email || null)
+        setUserId(session.user.id)
+        fetchProfileAndRegs(session.user.id, session.user.email || '')
       } else {
         setLoading(false)
       }
     })
   }, [])
 
+  // プロフィール更新処理
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!userId) return
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        name: editName,
+        phone: editPhone,
+        affiliation: editAffiliation,
+        emergency_contact: editEmergency,
+      })
+      .eq('id', userId)
+
+    if (error) {
+      alert('更新に失敗しました: ' + error.message)
+    } else {
+      alert('プロフィール情報を更新しました！')
+      setIsEditOpen(false)
+      if (userEmail) fetchProfileAndRegs(userId, userEmail)
+    }
+  }
+
   const handleCancel = async (eventId: string, title: string) => {
-    if (!userEmail) return
+    if (!userEmail || !userId) return
     if (!confirm(`「${title}」の参加をキャンセルしますか？`)) return
 
     const { error } = await supabase
@@ -79,13 +139,23 @@ export default function MyPage() {
       alert('キャンセルに失敗しました: ' + error.message)
     } else {
       alert('キャンセルしました')
-      fetchMyRegistrations(userEmail)
+      fetchProfileAndRegs(userId, userEmail)
+    }
+  }
+
+  const getRoleLabel = (role?: string) => {
+    switch (role) {
+      case 'admin':
+        return 'サークル員（全権管理者）'
+      case 'staff':
+        return '子ども食堂 運営スタッフ'
+      default:
+        return 'ボランティア参加希望'
     }
   }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 pb-16">
-      {/* ヘッダー */}
       <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
         <div className="flex items-center space-x-3">
           <div className="w-11 h-11 bg-[#0095f6] text-white rounded-2xl flex items-center justify-center font-bold text-xl shadow-sm">
@@ -101,68 +171,60 @@ export default function MyPage() {
         </Link>
       </header>
 
-      {/* メイン */}
       <main className="max-w-4xl mx-auto px-6 pt-8 space-y-6">
         <div className="bg-white rounded-3xl p-8 border border-sky-100/70 shadow-2xs space-y-8">
           
-          {/* タイトルと編集ボタン */}
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <h2 className="text-xl font-black text-slate-800 tracking-tight">マイページ・アカウント設定</h2>
               <p className="text-xs text-slate-400 font-medium">登録情報の確認・変更および参加予定イベントの管理</p>
             </div>
             <button
-              onClick={() => alert('プロフィール編集機能は準備中です')}
-              className="px-5 py-2 bg-[#0095f6] hover:bg-sky-500 text-white rounded-full text-xs font-bold shadow-2xs transition"
+              onClick={() => setIsEditOpen(true)}
+              className="px-5 py-2 bg-[#0095f6] hover:bg-sky-500 text-white rounded-full text-xs font-bold shadow-2xs transition cursor-pointer"
             >
               編集する
             </button>
           </div>
 
-          {/* 登録プロフィール設定（2枚目の画像に合わせた2列グリッドカード） */}
+          {/* プロフィール表示カード */}
           <div className="bg-sky-50/40 border border-sky-100/80 rounded-3xl p-6 space-y-4">
             <h3 className="text-xs font-bold text-[#0095f6]">登録プロフィール設定</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* お名前 */}
               <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">お名前</span>
-                <p className="text-xs font-bold text-slate-700">長崎 太郎</p>
+                <p className="text-xs font-bold text-slate-700">{profile?.name || '（未設定）'}</p>
               </div>
 
-              {/* ご区分 */}
               <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">ご区分</span>
-                <p className="text-xs font-bold text-[#0095f6]">ボランティア参加希望</p>
+                <p className="text-xs font-bold text-[#0095f6]">{getRoleLabel(profile?.role)}</p>
               </div>
 
-              {/* メールアドレス */}
               <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">メールアドレス</span>
-                <p className="text-xs font-bold text-slate-700">{userEmail || '読み込み中...'}</p>
+                <p className="text-xs font-bold text-slate-700">{userEmail || '（未設定）'}</p>
               </div>
 
-              {/* 電話番号 */}
               <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">電話番号</span>
-                <p className="text-xs font-bold text-slate-700">090-1234-5678</p>
+                <p className="text-xs font-bold text-slate-700">{profile?.phone || '（未設定）'}</p>
               </div>
 
-              {/* 所属・学校名・学年 */}
               <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">所属・学校名・学年</span>
-                <p className="text-xs font-bold text-slate-700">長崎大学 教育学部 2年</p>
+                <p className="text-xs font-bold text-slate-700">{profile?.affiliation || '（未設定）'}</p>
               </div>
 
-              {/* 緊急連絡先・アレルギー等 */}
               <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">緊急連絡先・アレルギー等</span>
-                <p className="text-xs font-bold text-slate-700">090-9999-9999 / なし</p>
+                <p className="text-xs font-bold text-slate-700">{profile?.emergency_contact || '（未設定）'}</p>
               </div>
             </div>
           </div>
 
-          {/* 自分の参加予定イベント履歴 */}
+          {/* 参加履歴 */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-slate-400">📅 自分の参加予定イベント履歴</h3>
 
@@ -195,7 +257,7 @@ export default function MyPage() {
 
                     <button
                       onClick={() => handleCancel(reg.event_id, reg.events?.title)}
-                      className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition self-start sm:self-center shrink-0"
+                      className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition self-start sm:self-center shrink-0 cursor-pointer"
                     >
                       参加をキャンセル
                     </button>
@@ -207,6 +269,80 @@ export default function MyPage() {
 
         </div>
       </main>
+
+      {/* プロフィール編集モーダル */}
+      {isEditOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-xl space-y-5">
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-slate-800">プロフィール情報の編集</h3>
+              <p className="text-xs text-slate-400">登録情報を更新します。</p>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600">お名前</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="例：長崎 太郎"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600">電話番号</label>
+                <input
+                  type="text"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="例：090-1234-5678"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600">所属・学校名・学年</label>
+                <input
+                  type="text"
+                  value={editAffiliation}
+                  onChange={(e) => setEditAffiliation(e.target.value)}
+                  placeholder="例：長崎大学 教育学部 2年"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600">緊急連絡先・アレルギー等</label>
+                <input
+                  type="text"
+                  value={editEmergency}
+                  onChange={(e) => setEditEmergency(e.target.value)}
+                  placeholder="例：090-9999-9999 / なし"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6]"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditOpen(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#0095f6] hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-2xs transition cursor-pointer"
+                >
+                  保存する
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
