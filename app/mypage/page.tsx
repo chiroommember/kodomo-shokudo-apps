@@ -40,7 +40,6 @@ export default function MyPage() {
   const [registrations, setRegistrations] = useState<RegistrationWithEvent[]>([])
   const [loading, setLoading] = useState(true)
 
-  // 編集モーダル用のステート
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
@@ -48,7 +47,6 @@ export default function MyPage() {
   const [editEmergency, setEditEmergency] = useState('')
 
   const fetchProfileAndRegs = async (id: string, email: string) => {
-    // プロフィール取得
     const { data: profData } = await supabase
       .from('profiles')
       .select('*')
@@ -63,7 +61,6 @@ export default function MyPage() {
       setEditEmergency(profData.emergency_contact || '')
     }
 
-    // 参加予定イベント取得
     const { data: regData } = await supabase
       .from('registrations')
       .select(`
@@ -101,7 +98,6 @@ export default function MyPage() {
     })
   }, [])
 
-  // プロフィール更新処理
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!userId) return
@@ -156,75 +152,73 @@ export default function MyPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 pb-16">
-      <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
-        <div className="flex items-center space-x-3">
-          <div className="w-11 h-11 bg-[#0095f6] text-white rounded-2xl flex items-center justify-center font-bold text-xl shadow-sm">
+      <header className="bg-white border-b border-slate-100 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
+        <div className="flex items-center space-x-2.5">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 bg-[#0095f6] text-white rounded-2xl flex items-center justify-center font-bold text-base sm:text-xl shadow-sm">
             ち
           </div>
           <div>
-            <h1 className="font-bold text-slate-900 text-lg leading-tight">マイページ</h1>
-            <p className="text-[11px] text-slate-400 font-medium">長崎大学 こども食堂サポートサークル</p>
+            <h1 className="font-bold text-slate-900 text-sm sm:text-lg leading-tight">マイページ</h1>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium">長崎大学 こども食堂サポートサークル</p>
           </div>
         </div>
-        <Link href="/" className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition">
+        <Link href="/" className="px-3.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition">
           トップへ戻る
         </Link>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 pt-8 space-y-6">
-        <div className="bg-white rounded-3xl p-8 border border-sky-100/70 shadow-2xs space-y-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6">
+        <div className="bg-white rounded-3xl p-5 sm:p-8 border border-sky-100/70 shadow-2xs space-y-6 sm:space-y-8">
           
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div className="space-y-1">
-              <h2 className="text-xl font-black text-slate-800 tracking-tight">マイページ・アカウント設定</h2>
+              <h2 className="text-lg sm:text-xl font-black text-slate-800 tracking-tight">マイページ・アカウント設定</h2>
               <p className="text-xs text-slate-400 font-medium">登録情報の確認・変更および参加予定イベントの管理</p>
             </div>
             <button
               onClick={() => setIsEditOpen(true)}
-              className="px-5 py-2 bg-[#0095f6] hover:bg-sky-500 text-white rounded-full text-xs font-bold shadow-2xs transition cursor-pointer"
+              className="px-5 py-2 bg-[#0095f6] hover:bg-sky-500 text-white rounded-full text-xs font-bold shadow-2xs transition cursor-pointer self-start sm:self-auto"
             >
               編集する
             </button>
           </div>
 
-          {/* プロフィール表示カード */}
-          <div className="bg-sky-50/40 border border-sky-100/80 rounded-3xl p-6 space-y-4">
+          <div className="bg-sky-50/40 border border-sky-100/80 rounded-3xl p-4 sm:p-6 space-y-4">
             <h3 className="text-xs font-bold text-[#0095f6]">登録プロフィール設定</h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">お名前</span>
                 <p className="text-xs font-bold text-slate-700">{profile?.name || '（未設定）'}</p>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
+              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">ご区分</span>
                 <p className="text-xs font-bold text-[#0095f6]">{getRoleLabel(profile?.role)}</p>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
+              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">メールアドレス</span>
-                <p className="text-xs font-bold text-slate-700">{userEmail || '（未設定）'}</p>
+                <p className="text-xs font-bold text-slate-700 truncate">{userEmail || '（未設定）'}</p>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
+              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">電話番号</span>
                 <p className="text-xs font-bold text-slate-700">{profile?.phone || '（未設定）'}</p>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
+              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">所属・学校名・学年</span>
                 <p className="text-xs font-bold text-slate-700">{profile?.affiliation || '（未設定）'}</p>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
+              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-sky-100/60 shadow-2xs space-y-1">
                 <span className="text-[10px] font-bold text-slate-400">緊急連絡先・アレルギー等</span>
                 <p className="text-xs font-bold text-slate-700">{profile?.emergency_contact || '（未設定）'}</p>
               </div>
             </div>
           </div>
 
-          {/* 参加履歴 */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-slate-400">📅 自分の参加予定イベント履歴</h3>
 
@@ -237,7 +231,7 @@ export default function MyPage() {
             ) : (
               <div className="space-y-3">
                 {registrations.map((reg) => (
-                  <div key={reg.id} className="p-5 bg-white border border-sky-100 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div key={reg.id} className="p-4 sm:p-5 bg-white border border-sky-100 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-black text-slate-800">{reg.events?.title || 'イベント'}</span>
@@ -270,10 +264,9 @@ export default function MyPage() {
         </div>
       </main>
 
-      {/* プロフィール編集モーダル */}
       {isEditOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-xl space-y-5">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-xl space-y-4">
             <div className="space-y-1">
               <h3 className="text-base font-black text-slate-800">プロフィール情報の編集</h3>
               <p className="text-xs text-slate-400">登録情報を更新します。</p>
