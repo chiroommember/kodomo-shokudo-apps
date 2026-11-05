@@ -27,7 +27,6 @@ export default function CheckinPage() {
       }
 
       const email = session.user.email
-      // データベースのプロフィールロールをチェック
       const { data: prof } = await supabase
         .from('profiles')
         .select('role')
