@@ -239,7 +239,6 @@ export default function MyPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-black text-slate-800">{reg.events?.title || 'イベント'}</span>
-                          {/* 管理者の変更がリアルタイム反映されるステータスバッジ */}
                           <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
                             status === '参加' 
                               ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
@@ -299,7 +298,6 @@ export default function MyPage() {
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-slate-600">電話番号</label>
                 <input
-                  type="text"
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
                   placeholder="例：090-1234-5678"
