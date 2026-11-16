@@ -20,7 +20,7 @@ type RegistrationDetail = {
     event_date: string
     time: string
     location: string
-  }
+  } | null
 }
 
 type ProfileItem = {
@@ -74,6 +74,33 @@ export default function AdminRegistrationsPage() {
     fetchAllRegistrations()
   }, [])
 
+  // 参加者（申込）の削除・取消処理
+  const handleCancelRegistration = async (registrationId: string, userName: string, eventTitle: string) => {
+    if (!confirm(`「${eventTitle}`}」の ${userName}さんの申込を解除（削除）しますか？`)) return
+
+    const { error } = await supabase
+      .from('registrations')
+      .delete()
+      .eq('id', registrationId)
+
+    if (error) {
+      alert('解除に失敗しました: ' + error.message)
+    } else {
+      alert('参加申込を解除しました。')
+      fetchAllRegistrations()
+    }
+  }
+
+  // イベントごとに申込データをグループ化する
+  const groupedByEvent: { [eventTitle: string]: RegistrationDetail[] } = {}
+  registrations.forEach((reg) => {
+    const eventName = reg.events?.title || '未分類・終了したイベント'
+    if (!groupedByEvent[eventName]) {
+      groupedByEvent[eventName] = []
+    }
+    groupedByEvent[eventName].push(reg)
+  })
+
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 pb-16">
       {/* ヘッダー */}
@@ -83,7 +110,7 @@ export default function AdminRegistrationsPage() {
             ち
           </div>
           <div>
-            <h1 className="font-bold text-slate-900 text-lg leading-tight">管理者画面 - 申込者一覧</h1>
+            <h1 className="font-bold text-slate-900 text-lg leading-tight">管理者画面 - 出席・申込者管理</h1>
             <p className="text-[11px] text-slate-400 font-medium">長崎大学 こども食堂サポートサークル</p>
           </div>
         </div>
@@ -105,65 +132,76 @@ export default function AdminRegistrationsPage() {
 
       {/* メイン */}
       <main className="max-w-5xl mx-auto px-6 pt-8 space-y-6">
-        <div className="bg-white rounded-3xl p-8 border border-sky-100/70 shadow-2xs space-y-6">
-          <div className="space-y-1">
-            <h2 className="text-xl font-black text-slate-800 tracking-tight">イベント参加申込者一覧</h2>
-            <p className="text-xs text-slate-400 font-medium">ボランティアメンバーの参加申込み状況やメッセージを確認できます。</p>
-          </div>
-
-          {loading ? (
-            <p className="text-xs text-slate-400">読み込み中...</p>
-          ) : registrations.length === 0 ? (
-            <div className="p-8 bg-slate-50 border border-slate-100 rounded-2xl text-center text-xs text-slate-400">
-              現在、参加申込みはありません。
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 text-xs font-bold text-slate-400">
-                    <th className="py-3 px-4">イベント名 / 開催日</th>
-                    <th className="py-3 px-4">申込者名</th>
-                    <th className="py-3 px-4">希望参加時間</th>
-                    <th className="py-3 px-4">ひとことメッセージ</th>
-                    <th className="py-3 px-4">申込日時</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 text-xs">
-                  {registrations.map((reg) => {
-                    const userName = profilesMap[reg.user_email] || reg.user_email
-                    return (
-                      <tr key={reg.id} className="hover:bg-slate-50/50 transition">
-                        <td className="py-4 px-4 font-bold text-slate-800">
-                          <div>{reg.events?.title}</div>
-                          <div className="text-[10px] text-slate-400 font-normal">{reg.events?.event_date}</div>
-                        </td>
-                        <td className="py-4 px-4 font-bold text-[#0095f6]">
-                          {userName}
-                        </td>
-                        <td className="py-4 px-4 font-bold text-slate-700">
-                          <span className="px-2.5 py-1 bg-sky-50 text-sky-700 rounded-lg text-[11px]">
-                            {reg.participation_time || '全時間'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-slate-600 max-w-xs">
-                          {reg.message ? (
-                            <span className="p-2 bg-slate-50 rounded-xl block text-[11px]">{reg.message}</span>
-                          ) : (
-                            <span className="text-slate-300">なし</span>
-                          )}
-                        </td>
-                        <td className="py-4 px-4 text-slate-400 text-[11px]">
-                          {new Date(reg.created_at).toLocaleString('ja-JP')}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <div className="space-y-1">
+          <h2 className="text-xl font-black text-slate-800 tracking-tight">イベント別 出席・申込者リスト</h2>
+          <p className="text-xs text-slate-400 font-medium">イベントごとに参加メンバーを一覧表示し、いつでも参加の取消や管理ができます。</p>
         </div>
+
+        {loading ? (
+          <p className="text-xs text-slate-400">読み込み中...</p>
+        ) : Object.keys(groupedByEvent).length === 0 ? (
+          <div className="p-8 bg-white border border-slate-100 rounded-3xl text-center text-xs text-slate-400">
+            現在、参加申込みはありません。
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(groupedByEvent).map(([eventTitle, regs]) => {
+              const firstEventInfo = regs[0]?.events
+              return (
+                <div key={eventTitle} className="bg-white rounded-3xl p-6 border border-sky-100/70 shadow-2xs space-y-4">
+                  {/* イベントごとのヘッダー */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-1">
+                    <div>
+                      <h3 className="text-base font-black text-slate-800">{eventTitle}</h3>
+                      <p className="text-xs text-slate-400 font-medium">
+                        開催日: {firstEventInfo?.event_date || '未設定'} ({firstEventInfo?.time || '時間未設定'}) / 場所: {firstEventInfo?.location || '未設定'}
+                      </p>
+                    </div>
+                    <span className="px-3 py-1 bg-sky-50 text-[#0095f6] rounded-full text-xs font-bold self-start sm:self-auto">
+                      申込人数: {regs.length}人
+                    </span>
+                  </div>
+
+                  {/* 参加者の箇条書き・リスト */}
+                  <div className="space-y-2.5">
+                    {regs.map((reg) => {
+                      const userName = profilesMap[reg.user_email] || reg.user_email
+                      return (
+                        <div key={reg.id} className="bg-slate-50/70 border border-slate-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-slate-800">{userName}</span>
+                              <span className="px-2.5 py-0.5 bg-white border border-sky-100 text-[#0095f6] rounded-lg text-xs font-bold">
+                                希望時間: {reg.participation_time || '全時間'}
+                              </span>
+                            </div>
+                            {reg.message && (
+                              <p className="text-xs text-slate-600 bg-white p-2 rounded-xl border border-slate-100 inline-block">
+                                💬 ひとこと: {reg.message}
+                              </p>
+                            )}
+                            <div className="text-[10px] text-slate-400">
+                              申込日時: {new Date(reg.created_at).toLocaleString('ja-JP')}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleCancelRegistration(reg.id, userName, eventTitle)}
+                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                            >
+                              参加を取り消す
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </main>
     </div>
   )
