@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
@@ -9,9 +9,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+type ShokudoItem = {
+  id: string
+  no: number
+  name: string
+  district: string
+}
+
 export default function NewEventPage() {
   const router = useRouter()
-  const [title, setTitle] = useState('')
+  const [shokudoList, setShokudoList] = useState<ShokudoItem[]>([])
+  
+  const [selectedShokudoName, setSelectedShokudoName] = useState('')
   const [eventDate, setEventDate] = useState('')
   
   const [startTime, setStartTime] = useState('10:00')
@@ -32,6 +41,19 @@ export default function NewEventPage() {
     '23:00'
   ]
 
+  useEffect(() => {
+    const fetchShokudo = async () => {
+      const { data } = await supabase.from('shokudo_list').select('*').order('no', { ascending: true })
+      if (data) {
+        setShokudoList(data)
+        if (data.length > 0) {
+          setSelectedShokudoName(data[0].name)
+        }
+      }
+    }
+    fetchShokudo()
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -40,7 +62,7 @@ export default function NewEventPage() {
 
     const { error } = await supabase.from('events').insert([
       {
-        title,
+        title: selectedShokudoName, // 子ども食堂名をそのままイベント名（タイトル）にする
         event_date: eventDate,
         time: formattedTime,
         location,
@@ -62,7 +84,7 @@ export default function NewEventPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 pb-16">
       {/* ヘッダー */}
-      <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-20">
+      <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-25 shadow-2xs">
         <div className="flex items-center space-x-3">
           <div className="w-11 h-11 bg-[#0095f6] text-white rounded-2xl flex items-center justify-center font-bold text-xl shadow-sm">
             ち
@@ -88,22 +110,26 @@ export default function NewEventPage() {
               新しい活動・イベントの追加
             </h2>
             <p className="text-xs text-slate-400 font-medium">
-              カレンダーに表示する子ども食堂の開催情報を入力してください。
+              登録されている子ども食堂を選択して開催情報を入力してください。
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* イベント名 */}
+            {/* 子ども食堂の選択 */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-600">イベント名（子ども食堂名など）</label>
-              <input
-                type="text"
+              <label className="text-xs font-bold text-slate-600">対象の子ども食堂</label>
+              <select
+                value={selectedShokudoName}
+                onChange={(e) => setSelectedShokudoName(e.target.value)}
+                className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#0095f6] bg-slate-50/50 font-bold text-slate-700"
                 required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="例：〇〇子ども食堂"
-                className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#0095f6] bg-slate-50/50"
-              />
+              >
+                {shokudoList.map((item) => (
+                  <option key={item.id} value={item.name}>
+                    No.{item.no} {item.name} ({item.district})
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* 開催日 */}
@@ -173,9 +199,6 @@ export default function NewEventPage() {
                 placeholder="例：10"
                 className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-[#0095f6] bg-slate-50/50"
               />
-              <p className="text-[10px] text-slate-400">
-                ※ 申込数が定員に達した場合、自動的に受付終了となります。
-              </p>
             </div>
 
             {/* 詳細 */}
@@ -194,7 +217,7 @@ export default function NewEventPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[#0095f6] hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-sm transition mt-2"
+              className="w-full py-3 bg-[#0095f6] hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-sm transition mt-2 cursor-pointer"
             >
               {loading ? '保存中...' : 'イベントを追加する'}
             </button>
