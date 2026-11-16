@@ -13,6 +13,13 @@ const ADMIN_EMAILS = [
   'bb15125017@ms.nagasaki-u.ac.jp',
 ]
 
+type ShokudoItem = {
+  id: string
+  name: string
+  district: string
+  address: string
+}
+
 function NewEventForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -22,17 +29,32 @@ function NewEventForm() {
   const [time, setTime] = useState('10:00 〜 14:00')
   const [location, setLocation] = useState('')
   const [capacity, setCapacity] = useState('10')
+  const [shokudoList, setShokudoList] = useState<ShokudoItem[]>([])
+  const [selectedShokudoName, setSelectedShokudoName] = useState('')
+
   const [loading, setLoading] = useState(false)
   const [authorized, setAuthorized] = useState(false)
 
   useEffect(() => {
-    // 1. URLのクエリパラメータ（?date=YYYY-MM-DD）から日付を取得してセット
     const dateParam = searchParams.get('date')
     if (dateParam) {
       setEventDate(dateParam)
     }
 
-    // 2. 権限チェック
+    const fetchShokudo = async () => {
+      const { data } = await supabase.from('shokudo_list').select('id, name, district, address')
+      if (data) {
+        setShokudoList(data)
+        if (data.length > 0) {
+          setSelectedShokudoName(data[0].name)
+          setTitle(data[0].name) // 初期値として食堂名を入れる
+          setLocation(data[0].address || '')
+        }
+      }
+    }
+
+    fetchShokudo()
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session || !session.user.email) {
         alert('ログインが必要です。')
@@ -59,6 +81,17 @@ function NewEventForm() {
     })
   }, [router, searchParams])
 
+  // 食堂を変更したときに、名前や住所を自動で反映する
+  const handleShokudoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const sName = e.target.value
+    setSelectedShokudoName(sName)
+    setTitle(sName)
+    const found = shokudoList.find((s) => s.name === sName)
+    if (found) {
+      setLocation(found.address || '')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title || !eventDate) {
@@ -73,6 +106,7 @@ function NewEventForm() {
         time,
         location,
         capacity: Number(capacity) || 10,
+        shokudo_name: selectedShokudoName, // 食堂名と紐づけて保存
       },
     ])
 
@@ -111,15 +145,29 @@ function NewEventForm() {
         <div className="bg-white rounded-3xl p-8 border border-sky-100/70 shadow-2xs space-y-6">
           <div className="space-y-1">
             <h2 className="text-xl font-black text-slate-800 tracking-tight">新しいイベントの作成</h2>
-            <p className="text-xs text-slate-400 font-medium">カレンダーに表示されるボランティア募集イベントを追加します。</p>
+            <p className="text-xs text-slate-400 font-medium">登録されている子ども食堂を選択してイベントを作成します。</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-600">イベント名（子ども食堂の名前など）</label>
+              <label className="text-xs font-bold text-slate-600">子ども食堂を選択</label>
+              <select
+                value={selectedShokudoName}
+                onChange={handleShokudoChange}
+                className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6] font-bold text-slate-700"
+              >
+                {shokudoList.map((shokudo) => (
+                  <option key={shokudo.id} value={shokudo.name}>
+                    {shokudo.name} ({shokudo.district})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-600">イベント名（食堂名）</label>
               <input
                 type="text"
-                placeholder="例：冒険者ギルド 長崎の夜明け"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6] font-bold text-slate-700"
@@ -153,7 +201,6 @@ function NewEventForm() {
               <label className="text-xs font-bold text-slate-600">開催場所・住所</label>
               <input
                 type="text"
-                placeholder="例：長崎市西山3-31-16"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6] font-bold text-slate-700"
