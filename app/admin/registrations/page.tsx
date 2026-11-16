@@ -23,11 +23,29 @@ type RegistrationDetail = {
   }
 }
 
+type ProfileItem = {
+  email: string
+  name: string
+}
+
 export default function AdminRegistrationsPage() {
   const [registrations, setRegistrations] = useState<RegistrationDetail[]>([])
+  const [profilesMap, setProfilesMap] = useState<{ [email: string]: string }>({})
   const [loading, setLoading] = useState(true)
 
   const fetchAllRegistrations = async () => {
+    // プロフィール一覧を取得して、メールアドレス -> 名前の対応マップを作る
+    const { data: pData } = await supabase.from('profiles').select('email, name')
+    if (pData) {
+      const map: { [email: string]: string } = {}
+      pData.forEach((p: ProfileItem) => {
+        if (p.email && p.name) {
+          map[p.email] = p.name
+        }
+      })
+      setProfilesMap(map)
+    }
+
     const { data, error } = await supabase
       .from('registrations')
       .select(`
@@ -105,39 +123,42 @@ export default function AdminRegistrationsPage() {
                 <thead>
                   <tr className="border-b border-slate-100 text-xs font-bold text-slate-400">
                     <th className="py-3 px-4">イベント名 / 開催日</th>
-                    <th className="py-3 px-4">申込者メールアドレス</th>
+                    <th className="py-3 px-4">申込者名</th>
                     <th className="py-3 px-4">希望参加時間</th>
                     <th className="py-3 px-4">ひとことメッセージ</th>
                     <th className="py-3 px-4">申込日時</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 text-xs">
-                  {registrations.map((reg) => (
-                    <tr key={reg.id} className="hover:bg-slate-50/50 transition">
-                      <td className="py-4 px-4 font-bold text-slate-800">
-                        <div>{reg.events?.title}</div>
-                        <div className="text-[10px] text-slate-400 font-normal">{reg.events?.event_date}</div>
-                      </td>
-                      <td className="py-4 px-4 font-bold text-[#0095f6]">
-                        {reg.user_email}
-                      </td>
-                      <td className="py-4 px-4 font-bold text-slate-700">
-                        <span className="px-2.5 py-1 bg-sky-50 text-sky-700 rounded-lg text-[11px]">
-                          {reg.participation_time || '全時間'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-slate-600 max-w-xs">
-                        {reg.message ? (
-                          <span className="p-2 bg-slate-50 rounded-xl block text-[11px]">{reg.message}</span>
-                        ) : (
-                          <span className="text-slate-300">なし</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4 text-slate-400 text-[11px]">
-                        {new Date(reg.created_at).toLocaleString('ja-JP')}
-                      </td>
-                    </tr>
-                  ))}
+                  {registrations.map((reg) => {
+                    const userName = profilesMap[reg.user_email] || reg.user_email
+                    return (
+                      <tr key={reg.id} className="hover:bg-slate-50/50 transition">
+                        <td className="py-4 px-4 font-bold text-slate-800">
+                          <div>{reg.events?.title}</div>
+                          <div className="text-[10px] text-slate-400 font-normal">{reg.events?.event_date}</div>
+                        </td>
+                        <td className="py-4 px-4 font-bold text-[#0095f6]">
+                          {userName}
+                        </td>
+                        <td className="py-4 px-4 font-bold text-slate-700">
+                          <span className="px-2.5 py-1 bg-sky-50 text-sky-700 rounded-lg text-[11px]">
+                            {reg.participation_time || '全時間'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-600 max-w-xs">
+                          {reg.message ? (
+                            <span className="p-2 bg-slate-50 rounded-xl block text-[11px]">{reg.message}</span>
+                          ) : (
+                            <span className="text-slate-300">なし</span>
+                          )}
+                        </td>
+                        <td className="py-4 px-4 text-slate-400 text-[11px]">
+                          {new Date(reg.created_at).toLocaleString('ja-JP')}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
