@@ -30,7 +30,6 @@ function NewEventForm() {
   const [location, setLocation] = useState('')
   const [capacity, setCapacity] = useState('10')
   const [shokudoList, setShokudoList] = useState<ShokudoItem[]>([])
-  const [selectedShokudoName, setSelectedShokudoName] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [authorized, setAuthorized] = useState(false)
@@ -46,8 +45,7 @@ function NewEventForm() {
       if (data) {
         setShokudoList(data)
         if (data.length > 0) {
-          setSelectedShokudoName(data[0].name)
-          setTitle(data[0].name) // 初期値として食堂名を入れる
+          setTitle(data[0].name)
           setLocation(data[0].address || '')
         }
       }
@@ -81,10 +79,8 @@ function NewEventForm() {
     })
   }, [router, searchParams])
 
-  // 食堂を変更したときに、名前や住所を自動で反映する
   const handleShokudoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const sName = e.target.value
-    setSelectedShokudoName(sName)
     setTitle(sName)
     const found = shokudoList.find((s) => s.name === sName)
     if (found) {
@@ -106,7 +102,6 @@ function NewEventForm() {
         time,
         location,
         capacity: Number(capacity) || 10,
-        shokudo_name: selectedShokudoName, // 食堂名と紐づけて保存
       },
     ])
 
@@ -152,7 +147,7 @@ function NewEventForm() {
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-600">子ども食堂を選択</label>
               <select
-                value={selectedShokudoName}
+                value={title}
                 onChange={handleShokudoChange}
                 className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#0095f6] font-bold text-slate-700"
               >
