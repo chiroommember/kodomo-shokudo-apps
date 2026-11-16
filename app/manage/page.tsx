@@ -47,15 +47,28 @@ type MonthlyTaskItem = {
   status: string
 }
 
+type RegistrationWithEvent = {
+  id: string
+  user_email: string
+  participation_time?: string
+  message?: string
+  events: {
+    title: string
+    event_date: string
+    location: string
+  } | null
+}
+
 export default function ManagePage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'shokudo' | 'checks' | 'tasks'>('shokudo')
+  const [activeTab, setActiveTab] = useState<'shokudo' | 'checks' | 'tasks' | 'reports'>('shokudo')
   const [authorized, setAuthorized] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const [shokudoList, setShokudoList] = useState<ShokudoItem[]>([])
   const [activityChecks, setActivityChecks] = useState<ActivityCheckItem[]>([])
   const [monthlyTasks, setMonthlyTasks] = useState<MonthlyTaskItem[]>([])
+  const [registrationsList, setRegistrationsList] = useState<RegistrationWithEvent[]>([])
 
   // 子ども食堂の追加・編集モーダル用 state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -119,6 +132,25 @@ export default function ManagePage() {
 
     const { data: tData } = await supabase.from('monthly_tasks').select('*').order('created_at', { ascending: true })
     if (tData) setMonthlyTasks(tData)
+
+    // 申込データとイベント情報を結合して取得
+    const { data: rData } = await supabase
+      .from('registrations')
+      .select(`
+        id,
+        user_email,
+        participation_time,
+        message,
+        events (
+          title,
+          event_date,
+          location
+        )
+      `)
+    if (rData) {
+      // 型アサーションで安全に代入
+      setRegistrationsList(rData as unknown as RegistrationWithEvent[])
+    }
   }
 
   // チェック状態切り替え（活動日チェック）
@@ -255,6 +287,39 @@ export default function ManagePage() {
     }
   }
 
+  // 活動実績のCSVダウンロード処理
+  const handleDownloadCSV = () => {
+    if (registrationsList.length === 0) {
+      alert('ダウンロードする参加データがありません。')
+      return
+    }
+
+    // CSVのヘッダー行
+    const headers = ['参加者メールアドレス', 'イベント名', '開催日', '場所', '参加希望時間', 'ひとことメッセージ']
+    
+    // データ行の作成
+    const rows = registrationsList.map((item) => [
+      `"${item.user_email || ''}"`,
+      `"${item.events?.title || ''}"`,
+      `"${item.events?.event_date || ''}"`,
+      `"${item.events?.location || ''}"`,
+      `"${item.participation_time || ''}"`,
+      `"${(item.message || '').replace(/"/g, '""')}"`,
+    ])
+
+    // BOM付きUTF-8にしてExcelで文字化けしないようにする
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `chilloom_activity_report_${new Date().toISOString().slice(0, 10)}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   if (loading) {
     return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-xs text-slate-400">読み込み中...</div>
   }
@@ -309,6 +374,14 @@ export default function ManagePage() {
             >
               月次タスク管理
             </button>
+            <button
+              onClick={() => setActiveTab('reports')}
+              className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-2xl transition cursor-pointer whitespace-nowrap ${
+                activeTab === 'reports' ? 'bg-[#0095f6] text-white shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              }`}
+            >
+              活動実績・CSV出力
+            </button>
           </div>
 
           {activeTab === 'shokudo' && (
@@ -326,6 +399,15 @@ export default function ManagePage() {
               className="px-4 py-2 bg-[#0095f6] hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-2xs transition cursor-pointer whitespace-nowrap"
             >
               ＋ 月次タスクを追加
+            </button>
+          )}
+
+          {activeTab === 'reports' && (
+            <button
+              onClick={handleDownloadCSV}
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-2xs transition cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+            >
+              <span>📥 CSVレポートをダウンロード</span>
             </button>
           )}
         </div>
@@ -474,6 +556,51 @@ export default function ManagePage() {
                 月次タスクが登録されていません。右上のボタンから追加してください。
               </div>
             )}
+          </div>
+        )}
+
+        {/* ④ 活動実績・CSV出力タブ */}
+        {activeTab === 'reports' && (
+          <div className="space-y-4">
+            <div className="bg-[#f0f7ff] border border-sky-100 rounded-3xl p-5 space-y-2">
+              <h3 className="text-xs sm:text-sm font-black text-[#0095f6]">📊 活動実績・参加者データ集計</h3>
+              <p className="text-[11px] text-slate-500">
+                ボランティアメンバーが申し込んだイベントの参加履歴が自動で集計されています。<br/>
+                右上の「CSVレポートをダウンロード」ボタンを押すと、Excelなどで開けるファイル形式で保存できます。
+              </p>
+            </div>
+
+            <div className="bg-white border border-sky-100 rounded-3xl p-4 shadow-2xs overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-sky-50/50 text-slate-500 border-b border-sky-100">
+                  <tr>
+                    <th className="p-3 font-bold">参加者メール</th>
+                    <th className="p-3 font-bold">イベント名</th>
+                    <th className="p-3 font-bold">開催日</th>
+                    <th className="p-3 font-bold">参加希望時間</th>
+                    <th className="p-3 font-bold">ひとこと</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {registrationsList.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50/50">
+                      <td className="p-3 font-bold text-[#0095f6]">{item.user_email}</td>
+                      <td className="p-3 font-bold">{item.events?.title || 'ー'}</td>
+                      <td className="p-3 text-slate-500">{item.events?.event_date || 'ー'}</td>
+                      <td className="p-3 text-slate-600">{item.participation_time || 'ー'}</td>
+                      <td className="p-3 text-slate-400 truncate max-w-[200px]">{item.message || 'ー'}</td>
+                    </tr>
+                  ))}
+                  {registrationsList.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-400">
+                        現在蓄積されている参加データはありません。
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>
