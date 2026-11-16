@@ -298,14 +298,6 @@ export default function HomePage() {
           </div>
 
           <div className="block sm:hidden space-y-3">
-            {(userRole === 'staff' || userRole === 'admin') && (
-              <div className="flex justify-end pb-1">
-                <Link href="/events/new" className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-[#0095f6] rounded-xl text-xs font-bold transition flex items-center gap-1">
-                  <span>+ イベントを追加する</span>
-                </Link>
-              </div>
-            )}
-
             {daysWithEvents.length === 0 ? (
               <div className="p-6 bg-slate-50/50 rounded-2xl text-center text-xs text-slate-400 font-medium">
                 今月の活動予定はありません。
@@ -401,7 +393,7 @@ export default function HomePage() {
                     <div className="flex items-center justify-between w-full">
                       <span className={`text-xs font-bold ${isToday ? 'w-5 h-5 bg-[#0095f6] text-white rounded-full flex items-center justify-center text-[10px]' : 'text-slate-500'}`}>{dayNum}</span>
                       {(userRole === 'staff' || userRole === 'admin') && (
-                        <Link href="/events/new" className="px-1.5 py-0.5 bg-sky-50 hover:bg-sky-100 text-[#0095f6] rounded-md text-[10px] font-bold transition">+追加</Link>
+                        <Link href={`/events/new?date=${dateString}`} className="px-1.5 py-0.5 bg-sky-50 hover:bg-sky-100 text-[#0095f6] rounded-md text-[10px] font-bold transition">+追加</Link>
                       )}
                     </div>
 
