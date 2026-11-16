@@ -59,6 +59,11 @@ type RegistrationWithEvent = {
   } | null
 }
 
+type ProfileItem = {
+  email: string
+  name: string
+}
+
 export default function ManagePage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'shokudo' | 'checks' | 'tasks' | 'reports'>('shokudo')
@@ -69,6 +74,7 @@ export default function ManagePage() {
   const [activityChecks, setActivityChecks] = useState<ActivityCheckItem[]>([])
   const [monthlyTasks, setMonthlyTasks] = useState<MonthlyTaskItem[]>([])
   const [registrationsList, setRegistrationsList] = useState<RegistrationWithEvent[]>([])
+  const [profilesMap, setProfilesMap] = useState<{ [email: string]: string }>({})
 
   // 子ども食堂の追加・編集モーダル用 state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -132,6 +138,18 @@ export default function ManagePage() {
 
     const { data: tData } = await supabase.from('monthly_tasks').select('*').order('created_at', { ascending: true })
     if (tData) setMonthlyTasks(tData)
+
+    // プロフィール一覧を取得して、メールアドレス -> 名前の対応マップを作る
+    const { data: pData } = await supabase.from('profiles').select('email, name')
+    if (pData) {
+      const map: { [email: string]: string } = {}
+      pData.forEach((p: ProfileItem) => {
+        if (p.email && p.name) {
+          map[p.email] = p.name
+        }
+      })
+      setProfilesMap(map)
+    }
 
     // 申込データとイベント情報を結合して取得
     const { data: rData } = await supabase
@@ -530,7 +548,7 @@ export default function ManagePage() {
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-sky-50/50 text-slate-500 border-b border-sky-100">
                   <tr>
-                    <th className="p-3 font-bold">参加者（メール）</th>
+                    <th className="p-3 font-bold">参加者名</th>
                     <th className="p-3 font-bold">イベント名</th>
                     <th className="p-3 font-bold">開催日</th>
                     <th className="p-3 font-bold">参加希望時間</th>
@@ -538,15 +556,18 @@ export default function ManagePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {registrationsList.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/50">
-                      <td className="p-3 font-bold text-[#0095f6]">{item.user_email}</td>
-                      <td className="p-3 font-bold">{item.events?.title || 'ー'}</td>
-                      <td className="p-3 text-slate-500">{item.events?.event_date || 'ー'}</td>
-                      <td className="p-3 text-slate-600">{item.participation_time || 'ー'}</td>
-                      <td className="p-3 text-slate-400 truncate max-w-[200px]">{item.message || 'ー'}</td>
-                    </tr>
-                  ))}
+                  {registrationsList.map((item) => {
+                    const userName = profilesMap[item.user_email] || item.user_email
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/50">
+                        <td className="p-3 font-bold text-[#0095f6]">{userName}</td>
+                        <td className="p-3 font-bold">{item.events?.title || 'ー'}</td>
+                        <td className="p-3 text-slate-500">{item.events?.event_date || 'ー'}</td>
+                        <td className="p-3 text-slate-600">{item.participation_time || 'ー'}</td>
+                        <td className="p-3 text-slate-400 truncate max-w-[200px]">{item.message || 'ー'}</td>
+                      </tr>
+                    )
+                  })}
                   {registrationsList.length === 0 && (
                     <tr>
                       <td colSpan={5} className="p-8 text-center text-slate-400">
