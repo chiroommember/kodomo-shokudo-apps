@@ -13,6 +13,7 @@ type RegistrationDetail = {
   user_email: string
   message?: string
   participation_time?: string
+  status?: string
   created_at: string
   events: {
     id: string
@@ -53,6 +54,7 @@ export default function AdminRegistrationsPage() {
         user_email,
         message,
         participation_time,
+        status,
         created_at,
         events (
           id,
@@ -74,19 +76,17 @@ export default function AdminRegistrationsPage() {
     fetchAllRegistrations()
   }, [])
 
-  // 参加者（申込）の削除・取消処理
-  const handleCancelRegistration = async (registrationId: string, userName: string, eventTitle: string) => {
-    if (!confirm(`「${eventTitle}`}」の ${userName}さんの申込を解除（削除）しますか？`)) return
-
+  // 参加ステータスの切り替え（参加 ⇄ 未参加）
+  const handleToggleStatus = async (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === '参加' ? '未参加' : '参加'
     const { error } = await supabase
       .from('registrations')
-      .delete()
-      .eq('id', registrationId)
+      .update({ status: nextStatus })
+      .eq('id', id)
 
     if (error) {
-      alert('解除に失敗しました: ' + error.message)
+      alert('ステータスの更新に失敗しました: ' + error.message)
     } else {
-      alert('参加申込を解除しました。')
       fetchAllRegistrations()
     }
   }
@@ -110,7 +110,7 @@ export default function AdminRegistrationsPage() {
             ち
           </div>
           <div>
-            <h1 className="font-bold text-slate-900 text-lg leading-tight">管理者画面 - 出席・申込者管理</h1>
+            <h1 className="font-bold text-slate-900 text-lg leading-tight">管理者画面 - 申込者・出席管理</h1>
             <p className="text-[11px] text-slate-400 font-medium">長崎大学 こども食堂サポートサークル</p>
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function AdminRegistrationsPage() {
       <main className="max-w-5xl mx-auto px-6 pt-8 space-y-6">
         <div className="space-y-1">
           <h2 className="text-xl font-black text-slate-800 tracking-tight">イベント別 出席・申込者リスト</h2>
-          <p className="text-xs text-slate-400 font-medium">イベントごとに参加メンバーを一覧表示し、いつでも参加の取消や管理ができます。</p>
+          <p className="text-xs text-slate-400 font-medium">イベントごとに参加メンバーを一覧表示し、ボタン一つで「参加 / 未参加」の状態を管理できます。</p>
         </div>
 
         {loading ? (
@@ -162,35 +162,36 @@ export default function AdminRegistrationsPage() {
                     </span>
                   </div>
 
-                  {/* 参加者の箇条書き・リスト */}
+                  {/* 参加者のリスト */}
                   <div className="space-y-2.5">
                     {regs.map((reg) => {
                       const userName = profilesMap[reg.user_email] || reg.user_email
+                      const status = reg.status || '未参加'
                       return (
                         <div key={reg.id} className="bg-slate-50/70 border border-slate-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-black text-slate-800">{userName}</span>
-                              <span className="px-2.5 py-0.5 bg-white border border-sky-100 text-[#0095f6] rounded-lg text-xs font-bold">
-                                希望時間: {reg.participation_time || '全時間'}
-                              </span>
                             </div>
-                            {reg.message && (
-                              <p className="text-xs text-slate-600 bg-white p-2 rounded-xl border border-slate-100 inline-block">
-                                💬 ひとこと: {reg.message}
-                              </p>
-                            )}
+                            <div className="text-xs text-slate-600">
+                              希望時間: <span className="font-bold text-[#0095f6]">{reg.participation_time || '全時間'}</span>
+                              {reg.message && <span className="ml-3 text-slate-500">💬 {reg.message}</span>}
+                            </div>
                             <div className="text-[10px] text-slate-400">
                               申込日時: {new Date(reg.created_at).toLocaleString('ja-JP')}
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end">
                             <button
-                              onClick={() => handleCancelRegistration(reg.id, userName, eventTitle)}
-                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                              onClick={() => handleToggleStatus(reg.id, status)}
+                              className={`px-5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs ${
+                                status === '参加'
+                                  ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                  : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                              }`}
                             >
-                              参加を取り消す
+                              {status === '参加' ? '参加中' : '未参加'}
                             </button>
                           </div>
                         </div>
