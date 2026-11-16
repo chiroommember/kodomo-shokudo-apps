@@ -35,7 +35,6 @@ export default function AdminRegistrationsPage() {
   const [loading, setLoading] = useState(true)
 
   const fetchAllRegistrations = async () => {
-    // プロフィール一覧を取得して、メールアドレス -> 名前の対応マップを作る
     const { data: pData } = await supabase.from('profiles').select('email, name')
     if (pData) {
       const map: { [email: string]: string } = {}
@@ -76,7 +75,6 @@ export default function AdminRegistrationsPage() {
     fetchAllRegistrations()
   }, [])
 
-  // 参加ステータスの切り替え（参加 ⇄ 未参加）
   const handleToggleStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === '参加' ? '未参加' : '参加'
     const { error } = await supabase
@@ -91,7 +89,6 @@ export default function AdminRegistrationsPage() {
     }
   }
 
-  // イベントごとに申込データをグループ化する
   const groupedByEvent: { [eventTitle: string]: RegistrationDetail[] } = {}
   registrations.forEach((reg) => {
     const eventName = reg.events?.title || '未分類・終了したイベント'
@@ -103,7 +100,6 @@ export default function AdminRegistrationsPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 pb-16">
-      {/* ヘッダー */}
       <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
         <div className="flex items-center space-x-3">
           <div className="w-11 h-11 bg-[#0095f6] text-white rounded-2xl flex items-center justify-center font-bold text-xl shadow-sm">
@@ -130,7 +126,6 @@ export default function AdminRegistrationsPage() {
         </div>
       </header>
 
-      {/* メイン */}
       <main className="max-w-5xl mx-auto px-6 pt-8 space-y-6">
         <div className="space-y-1">
           <h2 className="text-xl font-black text-slate-800 tracking-tight">イベント別 出席・申込者リスト</h2>
@@ -149,7 +144,6 @@ export default function AdminRegistrationsPage() {
               const firstEventInfo = regs[0]?.events
               return (
                 <div key={eventTitle} className="bg-white rounded-3xl p-6 border border-sky-100/70 shadow-2xs space-y-4">
-                  {/* イベントごとのヘッダー */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-1">
                     <div>
                       <h3 className="text-base font-black text-slate-800">{eventTitle}</h3>
@@ -162,7 +156,6 @@ export default function AdminRegistrationsPage() {
                     </span>
                   </div>
 
-                  {/* 参加者のリスト */}
                   <div className="space-y-2.5">
                     {regs.map((reg) => {
                       const userName = profilesMap[reg.user_email] || reg.user_email
@@ -191,7 +184,7 @@ export default function AdminRegistrationsPage() {
                                   : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
                               }`}
                             >
-                              {status === '参加' ? '参加中' : '未参加'}
+                              {status === '参加' ? '参加' : '未参加'}
                             </button>
                           </div>
                         </div>
