@@ -24,6 +24,7 @@ type RegistrationWithEvent = {
   user_email: string
   message?: string
   participation_time?: string
+  status?: string
   created_at: string
   events: {
     title: string
@@ -69,6 +70,7 @@ export default function MyPage() {
         user_email,
         message,
         participation_time,
+        status,
         created_at,
         events (
           title,
@@ -230,33 +232,43 @@ export default function MyPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {registrations.map((reg) => (
-                  <div key={reg.id} className="p-4 sm:p-5 bg-white border border-sky-100 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-slate-800">{reg.events?.title || 'イベント'}</span>
-                        <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]">申込済み</span>
+                {registrations.map((reg) => {
+                  const status = reg.status || '未参加'
+                  return (
+                    <div key={reg.id} className="p-4 sm:p-5 bg-white border border-sky-100 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-slate-800">{reg.events?.title || 'イベント'}</span>
+                          {/* 管理者の変更がリアルタイム反映されるステータスバッジ */}
+                          <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                            status === '参加' 
+                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
+                              : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {status === '参加' ? '参加ステータス：参加' : '参加ステータス：未参加'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium">
+                          開催日: {reg.events?.event_date}（{reg.events?.time}）
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          場所: {reg.events?.location}
+                        </p>
+                        <div className="pt-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl space-y-1">
+                          <p><strong className="text-slate-700">希望時間:</strong> {reg.participation_time || '未設定'}</p>
+                          <p><strong className="text-slate-700">ひとこと:</strong> {reg.message || 'なし'}</p>
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-500 font-medium">
-                        開催日: {reg.events?.event_date}（{reg.events?.time}）
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        場所: {reg.events?.location}
-                      </p>
-                      <div className="pt-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl space-y-1">
-                        <p><strong className="text-slate-700">希望時間:</strong> {reg.participation_time || '未設定'}</p>
-                        <p><strong className="text-slate-700">ひとこと:</strong> {reg.message || 'なし'}</p>
-                      </div>
-                    </div>
 
-                    <button
-                      onClick={() => handleCancel(reg.event_id, reg.events?.title)}
-                      className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition self-start sm:self-center shrink-0 cursor-pointer"
-                    >
-                      参加をキャンセル
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        onClick={() => handleCancel(reg.event_id, reg.events?.title)}
+                        className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition self-start sm:self-center shrink-0 cursor-pointer"
+                      >
+                        参加をキャンセル
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
